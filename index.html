@@ -115,35 +115,35 @@
             </div>
           </div>
 
-          <!-- LIVE ODDS PANELS — one sparkline per outcome, each on its own scale -->
-          <div style="position:relative;margin:10px auto 4px;padding:14px 14px 10px;border-radius:16px;background:linear-gradient(180deg,rgba(10,14,26,.55),rgba(8,11,22,.6));border:1px solid rgba(255,255,255,.06)">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;color:#7a85a0;margin-bottom:6px">
-              <span>WIN PROBABILITY — live market price, per outcome</span>
-              <span style="color:#5d6f88">dashed = price we bet · edge = model − market</span>
+          <!-- LIVE ODDS CHART — one chart, all three outcome lines -->
+          <div style="position:relative;margin:10px auto 4px;padding:14px 14px 8px;border-radius:16px;background:linear-gradient(180deg,rgba(10,14,26,.55),rgba(8,11,22,.6));border:1px solid rgba(255,255,255,.06)">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:#7a85a0">WIN PROBABILITY · live market price moving</span>
+              <div style="display:flex;gap:15px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:11px">
+                <sc-for list="{{ chart.series }}" as="s" hint-placeholder-count="3">
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:3px;border-radius:2px;background:{{ s.color }};box-shadow:0 0 6px {{ s.color }}"></span><span style="color:#e9edf8;font-weight:700">{{ s.label }} {{ s.cur }}</span><span style="color:#6b7a92">· edge <span style="color:{{ s.edgeColor }}">{{ s.edge }}</span></span></span>
+                </sc-for>
+              </div>
             </div>
             <sc-if value="{{ hasChart }}" hint-placeholder-val="{{ true }}">
-              <sc-for list="{{ chart.panels }}" as="p" hint-placeholder-count="3">
-                <div style="display:flex;align-items:center;gap:14px;padding:11px 4px;border-top:1px solid rgba(255,255,255,.05)">
-                  <div style="display:flex;align-items:center;gap:9px;width:132px;flex:0 0 auto;min-width:0">
-                    <span style="width:11px;height:11px;border-radius:3px;background:{{ p.color }};box-shadow:0 0 8px {{ p.color }};flex:0 0 auto"></span>
-                    <span style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.label }}</span>
-                  </div>
-                  <div style="width:60px;flex:0 0 auto;text-align:right">
-                    <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:{{ p.color }};line-height:1">{{ p.cur }}</div>
-                    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ p.chgColor }};margin-top:2px">{{ p.chg }}</div>
-                  </div>
-                  <svg viewBox="0 0 300 52" preserveAspectRatio="none" style="flex:1;height:46px;min-width:60px">
-                    <path d="{{ p.area }}" style="fill:{{ p.color }};opacity:.1"/>
-                    <sc-if value="{{ p.hasBet }}" hint-placeholder-val="{{ false }}"><line x1="0" y1="{{ p.betY }}" x2="300" y2="{{ p.betY }}" style="stroke:#ffffff;stroke-width:1;stroke-dasharray:2 5;opacity:.45"/></sc-if>
-                    <path d="{{ p.line }}" style="fill:none;stroke:{{ p.color }};stroke-width:2.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;filter:drop-shadow(0 0 4px {{ p.color }})"/>
-                    <circle cx="{{ p.endX }}" cy="{{ p.endY }}" r="3.4" style="fill:{{ p.color }}"/>
-                  </svg>
-                  <div style="width:126px;flex:0 0 auto;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a93a8;line-height:1.5">model {{ p.mdl }}<br><span style="color:{{ p.edgeColor }};font-weight:600">edge {{ p.edge }}</span></div>
-                </div>
-              </sc-for>
+              <svg viewBox="0 0 1000 330" style="width:100%;height:auto;display:block">
+                <sc-for list="{{ chart.grid }}" as="g" hint-placeholder-count="5">
+                  <line x1="8" y1="{{ g.y }}" x2="{{ chart.xEnd }}" y2="{{ g.y }}" style="stroke:rgba(255,255,255,.06)"/>
+                  <text x="{{ chart.xEnd }}" y="{{ g.y }}" dx="6" dy="3.5" style="fill:#5d6f88;font-family:'JetBrains Mono',monospace;font-size:12px">{{ g.label }}</text>
+                </sc-for>
+                <sc-for list="{{ chart.entries }}" as="e" hint-placeholder-count="0">
+                  <line x1="8" y1="{{ e.y }}" x2="{{ chart.xEnd }}" y2="{{ e.y }}" style="stroke:{{ e.color }};stroke-width:1.2;stroke-dasharray:2 7;opacity:.55"/>
+                </sc-for>
+                <sc-for list="{{ chart.series }}" as="s" hint-placeholder-count="3">
+                  <path d="{{ s.area }}" style="fill:{{ s.color }};opacity:.09"/>
+                  <path d="{{ s.line }}" style="fill:none;stroke:{{ s.color }};stroke-width:3;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 6px {{ s.color }})"/>
+                  <circle cx="{{ s.endX }}" cy="{{ s.endY }}" r="5" style="fill:{{ s.color }};filter:drop-shadow(0 0 8px {{ s.color }})"/>
+                  <text x="{{ s.endX }}" y="{{ s.endY }}" dx="11" dy="4.5" style="fill:{{ s.color }};font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">{{ s.cur }}</text>
+                </sc-for>
+              </svg>
             </sc-if>
             <sc-if value="{{ noChart }}" hint-placeholder-val="{{ false }}">
-              <div style="height:160px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6b7a92">building price history… (a few ticks of live odds)</div>
+              <div style="height:200px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6b7a92">building price history… (a few ticks of live odds)</div>
             </sc-if>
           </div>
 
@@ -774,30 +774,27 @@ class Component extends DCLogic {
       return { name, h:hh, a:aa, hPct:Math.round(hh/tot*100)+'%', aPct:Math.round(aa/tot*100)+'%' };
     });
 
-    // ===== LIVE ODDS PANELS — one mini sparkline per outcome, each auto-scaled to its OWN range =====
+    // ===== LIVE ODDS CHART — one chart, all three outcomes, full 0–100% axis =====
     const hist = (fx.history||[]).filter(p=>p.mk);
     let chart = null;
     if(hist.length>=2){
-      const OUT=[{k:0,color:fx.home.color,label:fx.home.name},{k:1,color:'#ffb84d',label:'Draw'},{k:2,color:fx.away.color,label:fx.away.name}];
-      const W=300,H=52,pad=5,n=hist.length;
-      const panels=OUT.map(s=>{
-        const vals=hist.map(p=>p.mk[s.k]);
-        let plo=Math.min.apply(null,vals), phi=Math.max.apply(null,vals); const sp=(phi-plo)||0.01; plo-=sp*0.35; phi+=sp*0.35;
-        const xs=i=>pad+(i/(n-1))*(W-2*pad), ysv=v=>H-pad-((v-plo)/((phi-plo)||1))*(H-2*pad);
-        const pts=vals.map((v,i)=>[xs(i),ysv(v)]);
+      const W=1000,H=330,padL=8,padR=64,padT=14,padB=14,n=hist.length;
+      const xs=i=>padL+(i/(n-1))*(W-padL-padR);
+      const ys=v=>padT+(1-v)*(H-padT-padB);              // 0% bottom, 100% top, full scale
+      const OUT=[{k:0,color:fx.home.color,label:fx.home.abbr},{k:1,color:'#ffb84d',label:'Draw'},{k:2,color:fx.away.color,label:fx.away.abbr}];
+      const series=OUT.map(s=>{
+        const pts=hist.map((p,i)=>[xs(i),ys(p.mk[s.k])]);
         const line='M'+pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L');
-        const first=vals[0], last=vals[n-1], chg=Math.round((last-first)*1000)/10;
-        const lastMdl=hist[n-1].md[s.k], edge=Math.round((lastMdl-last)*1000)/10;
-        const bet=openBets.find(o=>o.label===fx.label && o.market==='1X2' && (o.selection==='home'?s.k===0:o.selection==='away'?s.k===2:s.k===1));
-        const bp=bet?1/bet.odds:null;
-        return { label:s.label, color:s.color, cur:Math.round(last*100)+'%',
-          chg:(chg>=0?'▲ ':'▼ ')+Math.abs(chg)+'%', chgColor:chg>=0?'#34e6a8':'#ff5d73',
-          mdl:Math.round(lastMdl*100)+'%', edge:(edge>=0?'+':'')+edge+'%', edgeColor:Math.abs(edge)<3?'#8a93a8':edge>=0?'#34e6a8':'#ff5d73',
-          line, area:line+' L '+pts[n-1][0].toFixed(1)+' '+(H-pad)+' L '+pts[0][0].toFixed(1)+' '+(H-pad)+' Z',
-          endX:pts[n-1][0].toFixed(1), endY:pts[n-1][1].toFixed(1),
-          hasBet:!!bet, betY:(bp!=null&&bp>=plo&&bp<=phi)?ysv(bp).toFixed(1):null, betLabel:bet?('our bet @'+bet.odds.toFixed(2)):'' };
+        const last=hist[n-1].mk[s.k], lastMdl=hist[n-1].md[s.k], e=Math.round((lastMdl-last)*1000)/10;
+        return { color:s.color, label:s.label, line,
+          area:line+' L '+pts[n-1][0].toFixed(1)+' '+ys(0).toFixed(1)+' L '+pts[0][0].toFixed(1)+' '+ys(0).toFixed(1)+' Z',
+          endX:pts[n-1][0].toFixed(1), endY:pts[n-1][1].toFixed(1), cur:Math.round(last*100)+'%',
+          mdl:Math.round(lastMdl*100)+'%', edge:(e>=0?'+':'')+e+'%', edgeColor:Math.abs(e)<3?'#8a93a8':e>=0?'#34e6a8':'#ff5d73' };
       });
-      chart={ panels };
+      const grid=[0,0.25,0.5,0.75,1].map(v=>({ y:ys(v).toFixed(1), label:Math.round(v*100)+'%' }));
+      const entries=openBets.filter(o=>o.label===fx.label && o.market==='1X2').map(o=>{ const k=o.selection==='home'?0:o.selection==='away'?2:1; const p=1/o.odds;
+        return { y:ys(p).toFixed(1), color:k===0?fx.home.color:k===2?fx.away.color:'#ffb84d', label:'bet @'+o.odds.toFixed(2) }; });
+      chart={ W, H, xEnd:(W-padR), series, grid, entries };
     }
 
     // ===== OUR TRADES vs THE LINE (did the price move our way?) =====
