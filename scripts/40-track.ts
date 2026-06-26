@@ -53,10 +53,14 @@ function liveBoard(fixtures: LiveFixture[]) {
   return fixtures.map((f) => ({ label: f.label, fixtureId: f.fixtureId, period: f.period, minute: f.minute, score: f.score, inRunning: f.inRunning, present: f.present, joint: f.jointLambda, model: S.map((s) => +f.model[s].toFixed(3)), market: f.marketX2 ? S.map((s) => +f.marketX2![s].toFixed(3)) : null, cross: f.cross.slice(0, 3).map((d) => ({ market: d.market, detail: d.detail, bp: d.residualBp })) }));
 }
 
+// Deploy the dashboard to gh-pages WITHOUT polluting master: temp-commit the (gitignored)
+// state.json, push the dashboard subtree, then reset master back to pristine.
 async function deploy(msg: string) {
-  await sh(["add", "dashboard/state.json"]);
+  await sh(["add", "-f", "dashboard/state.json"]);
   await sh(["-c", "user.name=sharps", "-c", "user.email=sharps@users.noreply.github.com", "commit", "-q", "-m", msg]);
   await sh(["subtree", "push", "--prefix", "dashboard", "origin", "gh-pages"]);
+  await sh(["reset", "--soft", "HEAD~1"]);
+  await sh(["restore", "--staged", "dashboard/state.json"]);
 }
 
 async function main() {
