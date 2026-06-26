@@ -126,7 +126,7 @@
               </div>
             </div>
             <sc-if value="{{ hasChart }}" hint-placeholder-val="{{ true }}">
-              <svg viewBox="0 0 1000 330" style="width:100%;height:auto;display:block">
+              <svg viewBox="0 0 1000 330" style="width:100%;aspect-ratio:1000 / 330;min-height:150px;display:block">
                 <sc-for list="{{ chart.grid }}" as="g" hint-placeholder-count="5">
                   <line x1="8" y1="{{ g.y }}" x2="{{ chart.xEnd }}" y2="{{ g.y }}" style="stroke:rgba(255,255,255,.06)"/>
                   <text x="{{ chart.xEnd }}" y="{{ g.y }}" dx="6" dy="3.5" style="fill:#5d6f88;font-family:'JetBrains Mono',monospace;font-size:12px">{{ g.label }}</text>
