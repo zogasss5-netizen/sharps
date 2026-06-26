@@ -57,7 +57,7 @@ function liveBoard(fixtures: LiveFixture[]) {
 // state.json, push the dashboard subtree, then reset master back to pristine.
 async function deploy(msg: string) {
   await sh(["add", "-f", "dashboard/state.json"]);
-  await sh(["-c", "user.name=sharps", "-c", "user.email=sharps@users.noreply.github.com", "commit", "-q", "-m", msg]);
+  await sh(["-c", "user.name=zogasss5-netizen", "-c", "user.email=258506098+zogasss5-netizen@users.noreply.github.com", "commit", "-q", "-m", msg]);
   await sh(["subtree", "push", "--prefix", "dashboard", "origin", "gh-pages"]);
   await sh(["reset", "--soft", "HEAD~1"]);
   await sh(["restore", "--staged", "dashboard/state.json"]);

@@ -129,7 +129,7 @@ async function main() {
 
     if (t % REDEPLOY_EVERY === 0) {
       await sh("git", ["add", "dashboard/state.json"]);
-      await sh("git", ["-c", "user.name=sharps", "-c", "user.email=sharps@users.noreply.github.com", "commit", "-q", "-m", `live: tick ${t}`]);
+      await sh("git", ["-c", "user.name=zogasss5-netizen", "-c", "user.email=258506098+zogasss5-netizen@users.noreply.github.com", "commit", "-q", "-m", `live: tick ${t}`]);
       await sh("git", ["subtree", "push", "--prefix", "dashboard", "origin", "gh-pages"]);
       console.log(`  redeployed @ tick ${t}`);
     }
