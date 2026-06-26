@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { BN } from "@coral-xyz/anchor";
 import { dataBase, dataHeaders } from "../src/ingest/auth.js";
-import { buildTick, type LiveFixture, type Signal } from "../src/agents/live.js";
+import { buildTick, currentOddsLookup, type LiveFixture, type Signal } from "../src/agents/live.js";
 import { runEngine, type MatchSpec } from "../src/agents/engine.js";
 import { loadKeypair } from "../src/chain/client.js";
 import { postIntent, ensureUsdtAta } from "../src/chain/venue.js";
@@ -78,6 +78,7 @@ async function main() {
       const terminal = /end|finish|ft|full|result|complete/.test(gs) || (!!sc && sc.minute >= 93);
       if (sc && terminal) finals.set(fixture.FixtureId, [sc.homeGoals, sc.awayGoals]);
     }
+    ledger.reprice(currentOddsLookup(rows)); // live CLV
     const settledN = ledger.settle(finals);
     ledger.save();
 
@@ -111,6 +112,7 @@ async function main() {
       ledger: {
         startBankroll: 1000,
         leaderboard: ledger.leaderboard(),
+        clv: ledger.clvBoard(),
         open: ledger.openPositions().slice(0, 12),
         settled: ledger.recentSettled(10),
         openCount: ledger.openPositions().length,

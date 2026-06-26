@@ -2,6 +2,22 @@ import { inPlayProbs, type Outcome } from "../model/poisson.js";
 import { parseMarkets, jointFit, dislocations, bestCrossValue, type Dislocation } from "../model/crossmarket.js";
 import { normalizeFixture, normalizeOdds, normalizeScores, WORLD_CUP_COMPETITION_ID } from "../model/normalize.js";
 import type { Market } from "./types.js";
+import type { OddsLookup } from "./ledger.js";
+
+/** Build a current-odds lookup from raw rows — feeds the ledger's CLV repricing. */
+export function currentOddsLookup(rows: { fixture: any; odds: any[] }[]): OddsLookup {
+  const map = new Map<string, number>();
+  for (const { fixture, odds } of rows) {
+    const f = normalizeFixture(fixture);
+    const mk = normalizeOdds(odds, f.p1IsHome);
+    if (mk) { map.set(`${f.fixtureId}|1X2|home`, mk.decimal.home); map.set(`${f.fixtureId}|1X2|draw`, mk.decimal.draw); map.set(`${f.fixtureId}|1X2|away`, mk.decimal.away); }
+    const m = parseMarkets(odds, f.p1IsHome);
+    if (m?.ah) { map.set(`${f.fixtureId}|AH|home`, m.ah.oddsHome); map.set(`${f.fixtureId}|AH|away`, m.ah.oddsAway); }
+    if (m?.ou) { map.set(`${f.fixtureId}|OU|over`, m.ou.oddsOver); map.set(`${f.fixtureId}|OU|under`, m.ou.oddsUnder); }
+  }
+  // match by fixture+market+selection (current main line) — a live proxy for line movement
+  return (fid, market, sel) => map.get(`${fid}|${market}|${sel}`);
+}
 
 export interface LiveFixture {
   label: string; fixtureId: number; period: string; minute: number; score: [number, number]; inRunning: boolean;

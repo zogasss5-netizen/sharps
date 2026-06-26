@@ -4,7 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { dataBase, dataHeaders } from "../src/ingest/auth.js";
-import { buildTick, type LiveFixture, type Signal } from "../src/agents/live.js";
+import { buildTick, currentOddsLookup, type LiveFixture, type Signal } from "../src/agents/live.js";
 import { runEngine, type MatchSpec } from "../src/agents/engine.js";
 import { loadKeypair } from "../src/chain/client.js";
 import { postIntent, ensureUsdtAta } from "../src/chain/venue.js";
@@ -91,6 +91,7 @@ async function main() {
       if (!sig.selection || !sig.oddsDecimal) continue;
       ledger.place({ agent: sig.agent, fixtureId: sig.fixtureId, label: sig.fixture, market: sig.market as any, selection: sig.selection, line: sig.line, stake: 0.02 * ledger.bankroll(sig.agent), oddsDecimal: sig.oddsDecimal, placedTs: now, entryMinute: minuteOf.get(sig.fixtureId) ?? 0, edgeBp: sig.edgeBp });
     }
+    ledger.reprice(currentOddsLookup(rows)); // live CLV: re-price open bets vs the moving line
 
     // lifecycle backlog + collect finals
     let notable = false;
@@ -142,7 +143,7 @@ async function main() {
       generatedAtMs: now, track: "TxODDS World Cup — Trading Tools & Agents", ...engine,
       fixtures: liveBoard(lt.fixtures),
       live: { tick, mode: "tracker", signals: lt.signals.length, feed: feed.slice(0, 24) },
-      ledger: { startBankroll: 1000, leaderboard: ledger.leaderboard(), open: ledger.openPositions().slice(0, 12), settled: ledger.recentSettled(10), openCount: ledger.openPositions().length },
+      ledger: { startBankroll: 1000, leaderboard: ledger.leaderboard(), clv: ledger.clvBoard(), open: ledger.openPositions().slice(0, 12), settled: ledger.recentSettled(10), openCount: ledger.openPositions().length },
       backlog: recentEvents(30),
       onchain: { network: "devnet", program: "6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J", intentTx: "2p6ub1ShSiojbqCvWcc6D2vYMDxi8NJXRSwyiSpyZsnDumLyhRuDWsJf62WkhTf1iuzaF9gq59Xj1sDUvXQ8gB46", validateTx: "neoJHaFxcmzgoicHrrvEDrfFyPFcQDoR2K9Y7Gmw7czHpkpsATN3oeToGag9BX6L5mrhCCCPy1M1oMLxvBj4R3U", liveIntents: onchainIntents.slice(0, 8) },
     };
