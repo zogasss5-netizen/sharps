@@ -10,6 +10,7 @@ import { loadKeypair } from "../src/chain/client.js";
 import { postIntent, ensureUsdtAta } from "../src/chain/venue.js";
 import { Ledger } from "../src/agents/ledger.js";
 import { normalizeScores } from "../src/model/normalize.js";
+import { adaptToTerminal } from "../src/agents/terminalState.js";
 
 // Durable, restart-safe tracker. Runs forever (until stopped). Polls the live TxLINE feed,
 // records every match lifecycle event (kickoff / goal / full-time) + every bet + settlement
@@ -154,7 +155,7 @@ async function main() {
       backlog: recentEvents(30),
       onchain: { network: "devnet", program: "6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J", intentTx: "2p6ub1ShSiojbqCvWcc6D2vYMDxi8NJXRSwyiSpyZsnDumLyhRuDWsJf62WkhTf1iuzaF9gq59Xj1sDUvXQ8gB46", validateTx: "neoJHaFxcmzgoicHrrvEDrfFyPFcQDoR2K9Y7Gmw7czHpkpsATN3oeToGag9BX6L5mrhCCCPy1M1oMLxvBj4R3U", liveIntents: onchainIntents.slice(0, 8) },
     };
-    fs.writeFileSync(OUT, JSON.stringify(state, null, 2));
+    fs.writeFileSync(OUT, JSON.stringify(adaptToTerminal(state), null, 2));
     console.log(`tick ${tick}  fixtures=${lt.fixtures.length}  open=${ledger.openPositions().length}  settled=${(ledger as any).data.settled.length}  events=${notable ? "+" : "-"}  intents=${onchainIntents.length}`);
 
     if (notable || tick % HEARTBEAT === 0) { await deploy(`track: tick ${tick}`); console.log("  redeployed"); }
