@@ -52,7 +52,7 @@ function phaseOf(gs: string, minute: number): Phase {
 }
 function liveBoard(fixtures: LiveFixture[]) {
   const S = ["home", "draw", "away"] as const;
-  return fixtures.map((f) => ({ label: f.label, fixtureId: f.fixtureId, period: f.period, minute: f.minute, score: f.score, inRunning: f.inRunning, present: f.present, joint: f.jointLambda, model: S.map((s) => +f.model[s].toFixed(3)), market: f.marketX2 ? S.map((s) => +f.marketX2![s].toFixed(3)) : null, cross: f.cross.slice(0, 3).map((d) => ({ market: d.market, detail: d.detail, bp: d.residualBp })) }));
+  return fixtures.map((f) => ({ label: f.label, fixtureId: f.fixtureId, period: f.period, minute: f.minute, score: f.score, inRunning: f.inRunning, startTime: f.startTime, present: f.present, joint: f.jointLambda, model: S.map((s) => +f.model[s].toFixed(3)), market: f.marketX2 ? S.map((s) => +f.marketX2![s].toFixed(3)) : null, cross: f.cross.slice(0, 3).map((d) => ({ market: d.market, detail: d.detail, bp: d.residualBp })) }));
 }
 
 // Deploy the dashboard to gh-pages WITHOUT polluting master: temp-commit the (gitignored)

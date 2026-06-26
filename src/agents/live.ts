@@ -21,6 +21,7 @@ export function currentOddsLookup(rows: { fixture: any; odds: any[] }[]): OddsLo
 
 export interface LiveFixture {
   label: string; fixtureId: number; period: string; minute: number; score: [number, number]; inRunning: boolean;
+  startTime: number;               // scheduled kickoff (epoch ms)
   present: string;                 // which markets present, e.g. "1X2+AH+OU"
   jointLambda: [number, number];
   model: Outcome;                  // in-play 1X2 model
@@ -73,7 +74,7 @@ export function buildTick(
     const lf: LiveFixture = {
       label: `${f.home} v ${f.away}`, fixtureId: f.fixtureId, period: m.period,
       minute: Math.round(score?.minute ?? 0), score: [score?.homeGoals ?? 0, score?.awayGoals ?? 0],
-      inRunning: !!market?.inRunning,
+      inRunning: !!market?.inRunning, startTime: f.startTime,
       present: [m.x2 && "1X2", m.ah && "AH", m.ou && "OU"].filter(Boolean).join("+"),
       jointLambda: [+fit.lambdaHome.toFixed(2), +fit.lambdaAway.toFixed(2)],
       model, marketX2: market?.probs, cross,

@@ -42,7 +42,7 @@ export function adaptToTerminal(s: any) {
     const { h, a } = split(f.label);
     return {
       fixtureId: String(f.fixtureId), label: `${h.abbr} v ${a.abbr}`, minute: f.minute, score: f.score,
-      inRunning: !!f.inRunning, present: !!f.market, home: h, away: a,
+      inRunning: !!f.inRunning, startTime: f.startTime ?? null, present: !!f.market, home: h, away: a,
       model: f.model, market: f.market || [0.34, 0.33, 0.33],
       cross: (f.cross || []).map((c: any) => ({ market: c.market, detail: c.detail, bp: c.bp })),
     };

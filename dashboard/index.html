@@ -104,9 +104,9 @@
                 <span style="color:#4a5168;font-size:.6em">–</span>
                 <span style="color:{{ fxAwayColor }}">{{ fxScoreA }}</span>
               </div>
-              <div style="display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#34e6a8;font-weight:600">
-                <span style="width:6px;height:6px;border-radius:50%;background:#34e6a8;box-shadow:0 0 8px #34e6a8;animation:blink 1.1s infinite"></span>
-                {{ fxMinuteStr }}
+              <div style="display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ fxStatusColor }};font-weight:600;white-space:nowrap">
+                <span style="width:6px;height:6px;border-radius:50%;background:{{ fxStatusColor }};box-shadow:0 0 8px {{ fxStatusColor }};animation:blink 1.1s infinite"></span>
+                {{ fxStatus }}
               </div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0">
@@ -222,8 +222,42 @@
       </sc-for>
     </section>
 
+    <!-- ===== STRATEGIES ===== -->
+    <section style="margin-top:24px">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px;padding:0 4px">
+        <h2 style="margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;letter-spacing:-.02em">Trading strategies</h2>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.08em;color:#8a93a8;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:3px 8px;border-radius:6px">CLICK ANY BOT TO SEE HOW IT TRADES</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:13px;align-items:start">
+        <sc-for list="{{ strategies }}" as="s" hint-placeholder-count="4">
+          <div onClick="{{ s.onClick }}" style="cursor:pointer;padding:16px 17px;border-radius:16px;background:linear-gradient(180deg,rgba(20,24,42,.72),rgba(11,14,26,.72));backdrop-filter:blur(16px);border:1px solid {{ s.border }};box-shadow:0 1px 0 rgba(255,255,255,.05) inset,{{ s.glow }};transition:all .2s;animation:rise .55s both">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0">
+                <span style="width:10px;height:10px;border-radius:3px;background:{{ s.color }};box-shadow:0 0 10px {{ s.color }};flex:0 0 auto"></span>
+                <div style="min-width:0">
+                  <div style="font-weight:700;font-size:14.5px;letter-spacing:-.01em">{{ s.title }}</div>
+                  <div style="font-size:11.5px;color:#8a93a8;margin-top:2px">{{ s.one }}</div>
+                </div>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:16px;color:{{ s.clvColor }};white-space:nowrap">{{ s.clv }}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:13px;margin-top:13px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#8a93a8">
+              <span>CLV <span style="color:#cdd9e8">{{ s.clv }}</span></span>
+              <span>beats close <span style="color:#cdd9e8">{{ s.beat }}</span></span>
+              <span><span style="color:#cdd9e8">{{ s.settled }}</span> settled</span>
+              <span>sim ROI <span style="color:#cdd9e8">{{ s.simRoi }}</span></span>
+            </div>
+            <sc-if value="{{ s.expanded }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;line-height:1.6;color:#c5d1e2">{{ s.how }}</div>
+            </sc-if>
+            <div style="margin-top:11px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;color:#6b7a92">{{ s.toggleLabel }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
     <!-- ===== WINDOW GRID ===== -->
-    <section style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;align-items:start">
+    <section style="margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;align-items:start">
 
       <!-- CLV BOARD -->
       <div style="grid-column:span 1;padding:18px;border-radius:18px;background:linear-gradient(180deg,rgba(20,24,42,.7),rgba(11,14,26,.72));backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.07);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 28px 60px -34px rgba(0,0,0,.85);animation:rise .6s both .04s">
@@ -364,7 +398,7 @@
                   <div style="font-size:12.5px;font-weight:600">{{ r.market }}</div>
                   <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8a93a8;margin-top:2px">{{ r.detail }}</div>
                 </div>
-                <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#a586ff">+{{ r.bp }}bp</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#a586ff">{{ r.edge }}</span>
                 <div style="grid-column:1/3;height:5px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden">
                   <div style="height:100%;width:{{ r.barPct }};border-radius:5px;background:linear-gradient(90deg,#6c4dd6,#a586ff);box-shadow:0 0 9px rgba(165,134,255,.5)"></div>
                 </div>
@@ -411,7 +445,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { data:null, errored:false, errMsg:"", focus:null, cel:null, now:Date.now() };
+  state = { data:null, errored:false, errMsg:"", focus:null, cel:null, now:Date.now(), expanded:null };
   prevScores = {};
   inited = false;
 
@@ -503,6 +537,30 @@ class Component extends DCLogic {
     return Math.round(m/60)+'h ago';
   }
 
+  matchStatus(f, now){
+    if(f.inRunning || f.minute>0) return { live:true, full:"LIVE · "+f.minute+"'", short:f.minute+"'" };
+    if(f.startTime){
+      const mins = Math.round((f.startTime - now)/60000);
+      if(mins>1){ const hh=Math.floor(mins/60), mm=mins%60; const t = hh>0?(hh+'h '+mm+'m'):(mm+'m'); return { live:false, full:'kicks off in '+t, short:'in '+t }; }
+      if(mins>=-2) return { live:false, full:'kicking off', short:'soon' };
+    }
+    return { live:false, full:'pre-match', short:'pre' };
+  }
+
+  // plain-English, per-strategy explainers
+  stratInfo(agent){
+    return ({
+      'cross-arb':{ title:'Cross-Market Arbitrage', one:'Backs the market that disagrees with the others.',
+        how:'For each match TxLINE gives three markets — match winner (1X2), Asian handicap, and total goals. They’re three views of the same game, so they should agree. This bot fits one fair price across all three and backs whichever market is mispriced beyond the bookmaker margin. It doesn’t predict the match — it trades the disagreement between markets.' },
+      'inplay-value':{ title:'In-Play Value', one:'Bets the lag right after a goal.',
+        how:'Only active once a match is live. When a goal goes in, the betting line takes time to fully move. This bot already has a fair price from the model, so it backs the side the market is still under-pricing while the odds catch up. Bounded edges only — it ignores anything that looks too good to be real.' },
+      'steam':{ title:'Steam (sharp-money follow)', one:'Follows sharp moves the model agrees with.',
+        how:'“Steam” is when sharp money slams a side and the line moves fast. This bot follows that move — but only when our own fair price agrees with the direction. Stops it chasing noise.' },
+      'favorite':{ title:'Favourite (control)', one:'Backs the pre-match favourite. Meant to lose.',
+        how:'A deliberately dumb baseline: it just backs the pre-match favourite at a flat stake. It’s expected to LOSE closing-line value — it’s the control that proves the other three are genuinely sharp, not lucky.' }
+    })[agent] || { title:agent, one:'', how:'' };
+  }
+
   spark(arr,w,h,pad){
     const max=Math.max.apply(null,arr), min=Math.min.apply(null,arr), rng=(max-min)||1, n=arr.length;
     const pts=arr.map((v,i)=>[ pad+(i/(n-1))*(w-2*pad), h-pad-((v-min)/rng)*(h-2*pad) ]);
@@ -555,7 +613,7 @@ class Component extends DCLogic {
     const now = this.state.now;
     if(!d){
       return { ready:false, loading:true, errored:this.state.errored, errMsg:this.state.errMsg, setRoot:this.setRoot,
-        tickStr:'—', genStr:'—', tabs:[], kpis:[], clvRows:[], positions:[], feed:[], intents:[], pnlRows:[], backlog:[], crossFixtures:[], simRows:[], stripes:[], celOn:false };
+        tickStr:'—', genStr:'—', tabs:[], kpis:[], clvRows:[], positions:[], feed:[], intents:[], pnlRows:[], backlog:[], crossFixtures:[], simRows:[], strategies:[], stripes:[], celOn:false };
     }
 
     const fixtures = d.fixtures||[];
@@ -565,8 +623,9 @@ class Component extends DCLogic {
     // tabs
     const tabs = fixtures.map(f=>{
       const active = f.fixtureId===focusId;
+      const ms = this.matchStatus(f, now);
       return {
-        label:f.label, scoreStr:f.score[0]+'–'+f.score[1], minuteStr:f.minute+"'",
+        label:f.label, scoreStr:f.score[0]+'–'+f.score[1], minuteStr:ms.short,
         homeColor:f.home.color, awayColor:f.away.color,
         onClick:()=>this.setState({ focus:f.fixtureId }),
         style:'cursor:pointer;display:flex;align-items:center;gap:9px;padding:8px 13px;border-radius:11px;font-family:inherit;font-size:12.5px;color:'+(active?'#e9edf8':'#9aa3b8')+';background:'+(active?'linear-gradient(180deg,rgba(77,107,255,.22),rgba(77,107,255,.08))':'rgba(255,255,255,.03)')+';border:1px solid '+(active?'rgba(120,140,255,.4)':'rgba(255,255,255,.07)')+';transition:all .2s;'+(active?'box-shadow:0 0 22px -6px rgba(90,120,255,.6)':'')
@@ -612,7 +671,7 @@ class Component extends DCLogic {
       { label:'NET P&L', raw:netPnl, fmt:'money-k', value:this.fmtNum(netPnl,'money-k'), sub:'all agents · settled', color:'#34e6a8', accent:'#34e6a8', delay:'.06' },
       { label:'AVG CLV', raw:avgClv, fmt:'pct-signed', value:this.fmtNum(avgClv,'pct-signed'), sub:'beats the closing line', color:'#34e6a8', accent:'#34e6a8', delay:'.1' },
       { label:'BEAT RATE', raw:beat*100, fmt:'pct', value:this.fmtNum(beat*100,'pct'), sub:'closing line beaten', color:'#a586ff', accent:'#a586ff', delay:'.14' },
-      { label:'LIVE EDGE', raw:bestEdge.edgeBp, fmt:'bp', value:this.fmtNum(bestEdge.edgeBp,'bp'), sub:bestEdge.agent+' · '+bestEdge.fixture, color:'#e9edf8', accent:'#ffb84d', delay:'.18' },
+      { label:'BEST LIVE EDGE', raw:bestEdge.edgeBp, fmt:'int', value:'+'+(bestEdge.edgeBp/100).toFixed(1)+'%', sub:bestEdge.agent+' · '+bestEdge.fixture, color:'#e9edf8', accent:'#ffb84d', delay:'.18' },
       { label:'ON-CHAIN', raw:onCount, fmt:'int', value:String(onCount), sub:'live intents on Solana', color:'#c5b3ff', accent:'#a586ff', delay:'.22' }
     ];
 
@@ -628,8 +687,8 @@ class Component extends DCLogic {
       return { agent:o.agent, color:this.agentColor(o.agent), text, sub:'£'+o.stake+' stake', odds:o.odds.toFixed(2), clv:(o.clvPct>=0?'+':'')+o.clvPct.toFixed(1)+'%', clvColor:clvTone };
     });
 
-    // feed
-    const feed = feedArr.map(f=>({ agent:f.agent, color:this.agentColor(f.agent), detail:f.market+' · '+f.side, fixture:f.fixture, edge:'+'+f.edgeBp+'bp', onchain:!!f.onchain }));
+    // feed (edge in plain %, not bp)
+    const feed = feedArr.map(f=>({ agent:f.agent, color:this.agentColor(f.agent), detail:f.market+' · '+f.side, fixture:f.fixture, edge:'+'+(f.edgeBp/100).toFixed(1)+'%', onchain:!!f.onchain }));
 
     // on-chain
     const oc = d.onchain||{};
@@ -647,11 +706,29 @@ class Component extends DCLogic {
 
     // cross-market
     const maxBp = Math.max.apply(null, fixtures.flatMap(f=>(f.cross||[]).map(c=>c.bp)));
-    const crossFixtures = fixtures.map(f=>({ label:f.label, rows:(f.cross||[]).map(c=>({ market:c.market, detail:c.detail, bp:c.bp, barPct:Math.round((c.bp/maxBp)*100)+'%' })) }));
+    const crossFixtures = fixtures.map(f=>({ label:f.label, rows:(f.cross||[]).map(c=>({ market:c.market, detail:c.detail, edge:'+'+(c.bp/100).toFixed(1)+'%', barPct:Math.round((c.bp/maxBp)*100)+'%' })) }));
 
     // sim leaderboard
     const sb = (d.leaderboard)||[];
     const simRows = sb.map(s=>{ const sp=this.spark(s.equity||[0,1],240,56,6); return { name:s.name, color:this.agentColor(s.name), hitRate:Math.round(s.hitRate*100)+'%', roi:'+'+(s.roi*100).toFixed(1)+'%', pnl:this.money(s.pnl), pathD:sp.d, areaD:sp.area }; });
+
+    // strategies (click any to expand its full explainer)
+    const clvByA = {}; clv.forEach(x=>clvByA[x.agent]=x);
+    const pnlByA = {}; lb.forEach(x=>pnlByA[x.agent]=x);
+    const simByA = {}; (sb||[]).forEach(x=>simByA[x.name]=x);
+    const strategies = ['cross-arb','inplay-value','steam','favorite'].filter(a=>clvByA[a]||pnlByA[a]||simByA[a]).map(a=>{
+      const info=this.stratInfo(a), c=clvByA[a]||{}, p=pnlByA[a]||{}, s=simByA[a]||{};
+      const exp = this.state.expanded===a;
+      return { id:a, agent:a, color:this.agentColor(a), title:info.title, one:info.one, how:info.how,
+        clv:(c.avgClv!=null?((c.avgClv>=0?'+':'')+c.avgClv.toFixed(2)+'%'):'—'), clvColor:(c.avgClv>=0?'#34e6a8':'#ff5a6e'),
+        beat:(c.beatRate!=null?Math.round(c.beatRate*100)+'%':'—'), n:c.n||0, settled:p.settled||0,
+        roi:(p.roi!=null?((p.roi>=0?'+':'')+(p.roi*100).toFixed(1)+'%'):'—'),
+        simRoi:(s.roi!=null?('+'+(s.roi*100).toFixed(1)+'%'):'—'),
+        expanded:exp, toggleLabel:exp?'▲ hide':'▼ how it trades',
+        border:exp?this.agentColor(a):'rgba(255,255,255,.07)', glow:exp?('0 0 28px -8px '+this.agentColor(a)):'none',
+        onClick:()=>this.setState({ expanded:this.state.expanded===a?null:a }) };
+    });
+    const fxMs = this.matchStatus(fx, now);
 
     // celebration
     const cel = this.state.cel;
@@ -663,6 +740,7 @@ class Component extends DCLogic {
       tabs, stripes, homePlayers, awayPlayers, focusBets,
       fxHomeName:fx.home.name, fxAwayName:fx.away.name, fxHomeColor:fx.home.color, fxAwayColor:fx.away.color,
       fxScoreH:fx.score[0], fxScoreA:fx.score[1], fxMinuteStr:fx.minute+"'",
+      fxStatus:fxMs.full, fxStatusLive:fxMs.live, fxStatusColor:(fxMs.live?'#34e6a8':'#ffb84d'), strategies,
       kpis, clvRows, positions, feed, intents, programUrl, programShort, pnlRows, backlog, crossFixtures, simRows,
       celOn, celKey:cel?String(cel.until):'x', celColor:cel?cel.color:'#34e6a8', celTeam:cel?(cel.team+' scores'):'', confetti:(celOn&&cel.pieces)?cel.pieces:[]
     };
