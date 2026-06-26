@@ -45,6 +45,8 @@ export function adaptToTerminal(s: any) {
       inRunning: !!f.inRunning, startTime: f.startTime ?? null, present: !!f.market, home: h, away: a,
       model: f.model, market: f.market || [0.34, 0.33, 0.33],
       cross: (f.cross || []).map((c: any) => ({ market: c.market, detail: c.detail, bp: c.bp })),
+      stats: f.stats || { home: { goals: 0, corners: 0, yellow: 0, red: 0 }, away: { goals: 0, corners: 0, yellow: 0, red: 0 } },
+      events: f.events || [],
     };
   });
   const mapBet = (b: any) => { const { h, a } = split(b.label); return {

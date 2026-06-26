@@ -199,6 +199,37 @@
           </sc-if>
 
         </div>
+
+        <!-- LIVE EVENTS + MATCH STATS (real, from TxLINE) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.07)">
+          <div style="background:rgba(8,11,22,.55);padding:14px 18px;min-height:118px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;color:#7a85a0;margin-bottom:10px">LIVE EVENTS</div>
+            <sc-if value="{{ hasEvents }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ fxEvents }}" as="e" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8a93a8;width:30px;flex:0 0 auto">{{ e.minute }}</span>
+                    <span style="width:7px;height:7px;border-radius:50%;background:{{ e.sideColor }};box-shadow:0 0 7px {{ e.sideColor }};flex:0 0 auto"></span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:{{ e.color }}">{{ e.label }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8a93a8">{{ e.team }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noEvents }}" hint-placeholder-val="{{ false }}">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b7a92;line-height:1.5">no events yet — goals, cards &amp; corners appear here live as the match runs.</div>
+            </sc-if>
+          </div>
+          <div style="background:rgba(8,11,22,.55);padding:14px 18px;min-height:118px">
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;color:#7a85a0;margin-bottom:12px"><span style="color:#4d9bff">{{ fxHomeAbbr }}</span><span>MATCH STATS</span><span style="color:#34e6a8">{{ fxAwayAbbr }}</span></div>
+            <sc-for list="{{ fxStatBars }}" as="st" hint-placeholder-count="4">
+              <div style="margin-bottom:10px">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;margin-bottom:4px"><span style="color:#e9edf8;font-weight:700">{{ st.h }}</span><span style="color:#7a85a0;font-size:10px">{{ st.name }}</span><span style="color:#e9edf8;font-weight:700">{{ st.a }}</span></div>
+                <div style="display:flex;height:5px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.05)"><div style="width:{{ st.hPct }};background:#4d9bff"></div><div style="flex:1"></div><div style="width:{{ st.aPct }};background:#34e6a8"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
         </sc-if>
 
         <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
@@ -248,7 +279,17 @@
               <span>sim ROI <span style="color:#cdd9e8">{{ s.simRoi }}</span></span>
             </div>
             <sc-if value="{{ s.expanded }}" hint-placeholder-val="{{ false }}">
-              <div style="margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;line-height:1.6;color:#c5d1e2">{{ s.how }}</div>
+              <div style="margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08)">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;color:#7a85a0;margin-bottom:6px">HOW IT TRADES</div>
+                <div style="font-size:13px;line-height:1.6;color:#c5d1e2">{{ s.how }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;color:#7a85a0;margin:15px 0 4px">ITS OPEN BETS · {{ s.betCount }}</div>
+                <sc-for list="{{ s.bets }}" as="b" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,.05)">
+                    <span style="font-size:12.5px;min-width:0"><span style="font-weight:600">{{ b.text }}</span> <span style="color:#7a85a0;font-family:'JetBrains Mono',monospace;font-size:10.5px">{{ b.match }} · @{{ b.odds }} · {{ b.stake }}</span></span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:{{ b.clvColor }};white-space:nowrap">CLV {{ b.clv }}</span>
+                  </div>
+                </sc-for>
+              </div>
             </sc-if>
             <div style="margin-top:11px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;color:#6b7a92">{{ s.toggleLabel }}</div>
           </div>
@@ -265,6 +306,7 @@
           <div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:2px;background:#34e6a8;box-shadow:0 0 8px #34e6a8"></span><h3 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em">Closing Line Value</h3></div>
           <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.07em;color:#34e6a8;background:rgba(52,230,168,.1);border:1px solid rgba(52,230,168,.28);padding:3px 6px;border-radius:5px">REAL</span>
         </div>
+        <div style="font-size:11.5px;line-height:1.55;color:#8a93a8;margin:-4px 0 12px">Did the odds move our way <b style="color:#cdd9e8">after</b> we bet? <b style="color:#34e6a8">+%</b> = we locked a better price than the market now offers — the pro sign of a sharp bet. No match result needed; it builds meaning over ~200+ bets.</div>
         <sc-for list="{{ clvRows }}" as="r" hint-placeholder-count="4">
           <div style="padding:11px 0;border-top:1px solid rgba(255,255,255,.05)">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
@@ -613,7 +655,7 @@ class Component extends DCLogic {
     const now = this.state.now;
     if(!d){
       return { ready:false, loading:true, errored:this.state.errored, errMsg:this.state.errMsg, setRoot:this.setRoot,
-        tickStr:'—', genStr:'—', tabs:[], kpis:[], clvRows:[], positions:[], feed:[], intents:[], pnlRows:[], backlog:[], crossFixtures:[], simRows:[], strategies:[], stripes:[], celOn:false };
+        tickStr:'—', genStr:'—', tabs:[], kpis:[], clvRows:[], positions:[], feed:[], intents:[], pnlRows:[], backlog:[], crossFixtures:[], simRows:[], strategies:[], fxEvents:[], fxStatBars:[], stripes:[], celOn:false };
     }
 
     const fixtures = d.fixtures||[];
@@ -712,14 +754,18 @@ class Component extends DCLogic {
     const sb = (d.leaderboard)||[];
     const simRows = sb.map(s=>{ const sp=this.spark(s.equity||[0,1],240,56,6); return { name:s.name, color:this.agentColor(s.name), hitRate:Math.round(s.hitRate*100)+'%', roi:'+'+(s.roi*100).toFixed(1)+'%', pnl:this.money(s.pnl), pathD:sp.d, areaD:sp.area }; });
 
-    // strategies (click any to expand its full explainer)
+    // strategies (click any to expand: how it trades + ITS bets + ITS performance, all in one place)
     const clvByA = {}; clv.forEach(x=>clvByA[x.agent]=x);
     const pnlByA = {}; lb.forEach(x=>pnlByA[x.agent]=x);
     const simByA = {}; (sb||[]).forEach(x=>simByA[x.name]=x);
+    const openBets = (d.ledger&&d.ledger.open)||[];
     const strategies = ['cross-arb','inplay-value','steam','favorite'].filter(a=>clvByA[a]||pnlByA[a]||simByA[a]).map(a=>{
       const info=this.stratInfo(a), c=clvByA[a]||{}, p=pnlByA[a]||{}, s=simByA[a]||{};
       const exp = this.state.expanded===a;
-      return { id:a, agent:a, color:this.agentColor(a), title:info.title, one:info.one, how:info.how,
+      const myBets = openBets.filter(o=>o.agent===a).map(o=>{ const fxo=fixtures.find(f=>f.label===o.label);
+        return { text:this.betEnglish({market:o.market,selection:o.selection,line:o.line}, fxo), match:o.label, odds:o.odds.toFixed(2),
+          clv:(o.clvPct>=0?'+':'')+o.clvPct.toFixed(1)+'%', clvColor:o.clvPct>=0?'#34e6a8':'#ff5a6e', stake:'£'+o.stake }; });
+      return { id:a, agent:a, color:this.agentColor(a), title:info.title, one:info.one, how:info.how, bets:myBets, betCount:myBets.length,
         clv:(c.avgClv!=null?((c.avgClv>=0?'+':'')+c.avgClv.toFixed(2)+'%'):'—'), clvColor:(c.avgClv>=0?'#34e6a8':'#ff5a6e'),
         beat:(c.beatRate!=null?Math.round(c.beatRate*100)+'%':'—'), n:c.n||0, settled:p.settled||0,
         roi:(p.roi!=null?((p.roi>=0?'+':'')+(p.roi*100).toFixed(1)+'%'):'—'),
@@ -729,6 +775,16 @@ class Component extends DCLogic {
         onClick:()=>this.setState({ expanded:this.state.expanded===a?null:a }) };
     });
     const fxMs = this.matchStatus(fx, now);
+
+    // live match detail (REAL events + stats) for the focused fixture
+    const actLabel = (a)=>({goal:'GOAL',own_goal:'OWN GOAL',yellow_card:'YELLOW',red_card:'RED',second_yellow:'2ND YELLOW',corner:'CORNER',penalty:'PENALTY',penalty_goal:'PEN GOAL',substitution:'SUB',var:'VAR'})[a]||(a||'').toUpperCase();
+    const evColor = (a)=>(a==='goal'||a==='penalty_goal'||a==='own_goal')?'#34e6a8':(a==='red_card'||a==='second_yellow')?'#ff5a6e':(a==='yellow_card')?'#ffb84d':(a==='corner')?'#4d9bff':'#a586ff';
+    const fst = fx.stats||{home:{},away:{}};
+    const fxEvents = (fx.events||[]).map(e=>({ label:actLabel(e.action), minute:e.minute+"'", color:evColor(e.action), sideColor:e.side==='home'?fx.home.color:(e.side==='away'?fx.away.color:'#8a93a8'), team:e.side==='home'?fx.home.abbr:(e.side==='away'?fx.away.abbr:'') }));
+    const fxStatBars = [['Corners','corners'],['Yellow cards','yellow'],['Red cards','red'],['Goals','goals']].map(([name,key])=>{
+      const hh=(fst.home&&fst.home[key])||0, aa=(fst.away&&fst.away[key])||0, tot=(hh+aa)||1;
+      return { name, h:hh, a:aa, hPct:Math.round(hh/tot*100)+'%', aPct:Math.round(aa/tot*100)+'%' };
+    });
 
     // celebration
     const cel = this.state.cel;
@@ -741,6 +797,7 @@ class Component extends DCLogic {
       fxHomeName:fx.home.name, fxAwayName:fx.away.name, fxHomeColor:fx.home.color, fxAwayColor:fx.away.color,
       fxScoreH:fx.score[0], fxScoreA:fx.score[1], fxMinuteStr:fx.minute+"'",
       fxStatus:fxMs.full, fxStatusLive:fxMs.live, fxStatusColor:(fxMs.live?'#34e6a8':'#ffb84d'), strategies,
+      fxEvents, fxStatBars, fxHomeAbbr:fx.home.abbr, fxAwayAbbr:fx.away.abbr, hasEvents:fxEvents.length>0, noEvents:fxEvents.length===0,
       kpis, clvRows, positions, feed, intents, programUrl, programShort, pnlRows, backlog, crossFixtures, simRows,
       celOn, celKey:cel?String(cel.until):'x', celColor:cel?cel.color:'#34e6a8', celTeam:cel?(cel.team+' scores'):'', confetti:(celOn&&cel.pieces)?cel.pieces:[]
     };

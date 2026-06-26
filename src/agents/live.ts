@@ -19,6 +19,9 @@ export function currentOddsLookup(rows: { fixture: any; odds: any[] }[]): OddsLo
   return (fid, market, sel) => map.get(`${fid}|${market}|${sel}`);
 }
 
+export interface TeamStats { goals: number; corners: number; yellow: number; red: number; }
+export interface MatchEvent { action: string; minute: number; side: "home" | "away" | null; }
+
 export interface LiveFixture {
   label: string; fixtureId: number; period: string; minute: number; score: [number, number]; inRunning: boolean;
   startTime: number;               // scheduled kickoff (epoch ms)
@@ -27,6 +30,23 @@ export interface LiveFixture {
   model: Outcome;                  // in-play 1X2 model
   marketX2?: Outcome;              // market 1X2
   cross: Dislocation[];            // per-market residuals vs joint fair
+  stats: { home: TeamStats; away: TeamStats }; // real live match stats
+  events: MatchEvent[];            // real recent events (goals, cards, corners) with minute
+}
+
+const EVENT_ACTIONS = new Set(["goal", "own_goal", "yellow_card", "red_card", "second_yellow", "corner", "penalty", "penalty_goal", "substitution", "var"]);
+/** Extract real live stats + a recent-event timeline from the raw scores rows. */
+export function matchDetail(scores: any[], p1IsHome: boolean): { stats: { home: TeamStats; away: TeamStats }; events: MatchEvent[] } {
+  const rows = [...(scores || [])].sort((a, b) => (a.Seq ?? 0) - (b.Seq ?? 0));
+  const latest = rows[rows.length - 1];
+  const hKey = p1IsHome ? "Participant1" : "Participant2", aKey = p1IsHome ? "Participant2" : "Participant1";
+  const team = (k: string): TeamStats => { const t = latest?.Score?.[k]?.Total ?? {}; return { goals: t.Goals ?? 0, corners: t.Corners ?? 0, yellow: t.YellowCards ?? 0, red: t.RedCards ?? 0 }; };
+  const events: MatchEvent[] = rows
+    .filter((r) => EVENT_ACTIONS.has(String(r.Action)))
+    .slice(-10)
+    .map((r): MatchEvent => ({ action: String(r.Action), minute: Math.round((r.Clock?.Seconds ?? 0) / 60), side: r.Participant === 1 ? (p1IsHome ? "home" : "away") : r.Participant === 2 ? (p1IsHome ? "away" : "home") : null }))
+    .reverse();
+  return { stats: { home: team(hKey), away: team(aKey) }, events };
 }
 
 export interface Signal {
@@ -78,6 +98,7 @@ export function buildTick(
       present: [m.x2 && "1X2", m.ah && "AH", m.ou && "OU"].filter(Boolean).join("+"),
       jointLambda: [+fit.lambdaHome.toFixed(2), +fit.lambdaAway.toFixed(2)],
       model, marketX2: market?.probs, cross,
+      ...matchDetail(scores, f.p1IsHome),
     };
     fixtures.push(lf);
 
