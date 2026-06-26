@@ -52,7 +52,18 @@ function phaseOf(gs: string, minute: number): Phase {
 }
 function liveBoard(fixtures: LiveFixture[]) {
   const S = ["home", "draw", "away"] as const;
-  return fixtures.map((f) => ({ label: f.label, fixtureId: f.fixtureId, period: f.period, minute: f.minute, score: f.score, inRunning: f.inRunning, startTime: f.startTime, present: f.present, joint: f.jointLambda, model: S.map((s) => +f.model[s].toFixed(3)), market: f.marketX2 ? S.map((s) => +f.marketX2![s].toFixed(3)) : null, cross: f.cross.slice(0, 3).map((d) => ({ market: d.market, detail: d.detail, bp: d.residualBp })), stats: f.stats, events: f.events }));
+  return fixtures.map((f) => ({ label: f.label, fixtureId: f.fixtureId, period: f.period, minute: f.minute, score: f.score, inRunning: f.inRunning, startTime: f.startTime, present: f.present, joint: f.jointLambda, model: S.map((s) => +f.model[s].toFixed(3)), market: f.marketX2 ? S.map((s) => +f.marketX2![s].toFixed(3)) : null, cross: f.cross.slice(0, 3).map((d) => ({ market: d.market, detail: d.detail, bp: d.residualBp })), stats: f.stats, events: f.events, history: (priceHist[f.fixtureId] || []) }));
+}
+
+// rolling price history per fixture: market + model implied 1X2 prob over time (for the live chart)
+const priceHist: Record<number, { t: number; mk: number[] | null; md: number[] }[]> = {};
+function pushHistory(fixtures: LiveFixture[], now: number) {
+  const r3 = (o: any): number[] => [+o.home.toFixed(3), +o.draw.toFixed(3), +o.away.toFixed(3)];
+  for (const f of fixtures) {
+    const arr = (priceHist[f.fixtureId] ||= []);
+    arr.push({ t: now, mk: f.marketX2 ? r3(f.marketX2) : null, md: r3(f.model) });
+    if (arr.length > 40) arr.splice(0, arr.length - 40);
+  }
 }
 
 // Deploy the dashboard to gh-pages WITHOUT polluting master: temp-commit the (gitignored)
@@ -91,6 +102,7 @@ async function main() {
 
     const lt = buildTick(rows, prev, now);
     prev = new Map(lt.fixtures.map((f) => [f.fixtureId, f]));
+    pushHistory(lt.fixtures, now);
     feed = [...lt.signals, ...feed].slice(0, 40);
 
     // place bets at live odds

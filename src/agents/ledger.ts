@@ -104,7 +104,8 @@ export class Ledger {
   openByFixture() {
     return this.data.open.map((o) => ({
       agent: o.agent, fixtureId: o.fixtureId, label: o.label, market: o.market, selection: o.selection,
-      line: o.line ?? null, odds: +o.oddsDecimal.toFixed(2), stake: Math.round(o.stake), clvPct: o.clvPct ?? null,
+      line: o.line ?? null, odds: +o.oddsDecimal.toFixed(2), currentOdds: o.currentOdds != null ? +o.currentOdds.toFixed(2) : null,
+      stake: Math.round(o.stake), clvPct: o.clvPct ?? null, placedTs: o.placedTs,
     }));
   }
   recentSettled(n = 12) {

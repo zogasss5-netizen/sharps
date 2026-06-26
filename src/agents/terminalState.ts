@@ -47,12 +47,13 @@ export function adaptToTerminal(s: any) {
       cross: (f.cross || []).map((c: any) => ({ market: c.market, detail: c.detail, bp: c.bp })),
       stats: f.stats || { home: { goals: 0, corners: 0, yellow: 0, red: 0 }, away: { goals: 0, corners: 0, yellow: 0, red: 0 } },
       events: f.events || [],
+      history: f.history || [],
     };
   });
   const mapBet = (b: any) => { const { h, a } = split(b.label); return {
     agent: b.agent, fixtureId: b.fixtureId != null ? String(b.fixtureId) : undefined,
     label: `${h.abbr} v ${a.abbr}`, market: MKT[b.market] || b.market, selection: sel(b, h.abbr, a.abbr),
-    line: b.line ?? 0, odds: b.odds, stake: b.stake, clvPct: b.clvPct ?? 0 }; };
+    line: b.line ?? 0, odds: b.odds, currentOdds: b.currentOdds ?? null, stake: b.stake, clvPct: b.clvPct ?? 0, placedTs: b.placedTs }; };
 
   const L = s.ledger || {};
   return {
