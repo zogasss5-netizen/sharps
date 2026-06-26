@@ -95,9 +95,16 @@ export class Ledger {
 
   openPositions() {
     return [...this.data.open].sort((a, b) => b.placedTs - a.placedTs).map((o) => ({
-      agent: o.agent, label: o.label, market: o.market, selection: o.selection, line: o.line,
+      agent: o.agent, fixtureId: o.fixtureId, label: o.label, market: o.market, selection: o.selection, line: o.line,
       odds: +o.oddsDecimal.toFixed(2), stake: Math.round(o.stake), edgeBp: o.edgeBp,
       clvPct: o.clvPct ?? null, placedTs: o.placedTs,
+    }));
+  }
+  /** All open bets keyed for the match view (full set, not sliced). */
+  openByFixture() {
+    return this.data.open.map((o) => ({
+      agent: o.agent, fixtureId: o.fixtureId, label: o.label, market: o.market, selection: o.selection,
+      line: o.line ?? null, odds: +o.oddsDecimal.toFixed(2), stake: Math.round(o.stake), clvPct: o.clvPct ?? null,
     }));
   }
   recentSettled(n = 12) {

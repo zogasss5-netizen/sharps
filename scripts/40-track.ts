@@ -147,7 +147,7 @@ async function main() {
       generatedAtMs: now, track: "TxODDS World Cup — Trading Tools & Agents", ...engine,
       fixtures: liveBoard(lt.fixtures),
       live: { tick, mode: "tracker", signals: lt.signals.length, feed: feed.slice(0, 24) },
-      ledger: { startBankroll: 1000, leaderboard: ledger.leaderboard(), clv: ledger.clvBoard(), open: ledger.openPositions().slice(0, 12), settled: ledger.recentSettled(10), openCount: ledger.openPositions().length },
+      ledger: { startBankroll: 1000, leaderboard: ledger.leaderboard(), clv: ledger.clvBoard(), open: ledger.openPositions().slice(0, 12), allOpen: ledger.openByFixture(), settled: ledger.recentSettled(10), openCount: ledger.openPositions().length },
       backlog: recentEvents(30),
       onchain: { network: "devnet", program: "6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J", intentTx: "2p6ub1ShSiojbqCvWcc6D2vYMDxi8NJXRSwyiSpyZsnDumLyhRuDWsJf62WkhTf1iuzaF9gq59Xj1sDUvXQ8gB46", validateTx: "neoJHaFxcmzgoicHrrvEDrfFyPFcQDoR2K9Y7Gmw7czHpkpsATN3oeToGag9BX6L5mrhCCCPy1M1oMLxvBj4R3U", liveIntents: onchainIntents.slice(0, 8) },
     };
