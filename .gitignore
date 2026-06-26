@@ -1,0 +1,24 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.wallet/
+*.keypair.json
+dist/
+.next/
+data/tape/
+*.log
+
+.playwright-mcp/
+sharps-dash-*.png
+
+data/ledger.json
+data/matchstate.json
+data/events.jsonl
+data/onchain.json
+
+# internal working docs — never commit
+CLAUDE.md
+STATE.md
+PLAN.md
+data/

@@ -1,0 +1,35 @@
+{
+  "name": "sharps",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Autonomous in-play football trading agents on TxODDS's on-chain venue (World Cup hackathon, Trading Agents track).",
+  "scripts": {
+    "wallet": "tsx scripts/00-wallet.ts",
+    "faucet": "tsx scripts/01-faucet.ts",
+    "subscribe": "tsx scripts/02-subscribe.ts",
+    "probe": "tsx scripts/04-probe.ts",
+    "stream": "tsx scripts/05-stream.ts",
+    "pricing": "tsx scripts/inspect-pricing.ts",
+    "model:selftest": "tsx src/model/poisson.ts",
+    "typecheck": "tsc --noEmit",
+    "sim": "tsx scripts/20-sim.ts",
+    "deploy:dash": "git subtree push --prefix dashboard origin gh-pages",
+    "live": "tsx scripts/30-live.ts",
+    "cross": "tsx scripts/31-cross.ts",
+    "track": "tsx scripts/40-track.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.95.4",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.4.5",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
