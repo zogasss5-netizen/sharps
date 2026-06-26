@@ -73,6 +73,18 @@
     <div id="livebar"></div>
   </header>
 
+  <section class="card" style="margin-top:16px;border-color:#26384a">
+    <h2>What am I looking at?</h2>
+    <p style="color:#c9d4e0;font-size:14px;line-height:1.6;margin:0">
+      Four autonomous bots read <b>live World Cup betting odds</b> from TxODDS's TxLINE feed and place
+      <b>paper bets</b> at the real prices — e.g. "France to win @2.26" or "Over 2.5 goals". They're scored two ways:
+      <b>Closing Line Value</b> (did the odds move in their favour after they bet — the professional test of a sharp
+      bettor, no match result needed) and <b>settled P&amp;L</b> (booked when a match finishes). The strongest signals
+      also commit <b>real USDT on-chain</b> on Solana. Everything below is grouped <span style="color:var(--grn)">REAL / live</span>
+      vs <span style="color:var(--amber)">SIMULATED</span> backtest.
+    </p>
+  </section>
+
   <div class="grid cols" style="margin-top:16px">
     <section class="card">
       <h2>Live signal feed <span id="livedot"></span></h2>
@@ -206,12 +218,20 @@ async function load(){
   // signal feed
   const tagCls = a => a==="cross-arb"?"cross":a==="inplay-value"?"model":a==="steam"?"steam":"model";
   const botLabel = a => a==="cross-arb"?"cross":a==="inplay-value"?"inplay":a;
+  // turn "AH away 0.75" on "Norway v France" into "France +0.75 (handicap)"
+  function humanBet(label, market, selection, line){
+    const p=(label||"").split(" v "); const h=(p[0]||"home").trim(), a=(p[1]||"away").trim();
+    if(market==="1X2") return selection==="home"?`${h} to win`:selection==="away"?`${a} to win`:"Draw";
+    if(market==="AH"){const t=selection==="home"?h:a; const ln=(line>=0?"+":"")+line; return `${t} ${ln} (handicap)`;}
+    if(market==="OU") return `${selection==="over"?"Over":"Under"} ${line} goals`;
+    return `${market} ${selection}`;
+  }
   const feed=document.getElementById("feed");
   const items=(lv&&lv.feed)||[];
   feed.innerHTML = items.length ? items.map(x=>{
     const link = x.onchain?` <a class="txlink" target="_blank" href="https://explorer.solana.com/tx/${x.onchain}?cluster=devnet">↗ tx</a>`:"";
     return `<div class="feedrow"><span class="tag ${tagCls(x.agent)}">${botLabel(x.agent)}</span>
-      <span class="fxn">${x.fixture} · ${x.market} ${x.side}</span>
+      <span class="fxn"><b>${humanBet(x.fixture, x.market, x.side, x.line)}</b> <span style="color:var(--dim)">· ${x.fixture}</span></span>
       <span class="bp ${x.edgeBp>=0?'pos':'neg'}">${x.edgeBp>0?'+':''}${x.edgeBp}bp</span>${link}</div>`;
   }).join("") : `<div class="empty">No live session running. Run <span class="mono">npm run live</span>.</div>`;
 
@@ -250,7 +270,7 @@ async function load(){
   op.innerHTML=opens.length?opens.map(o=>{
     const clvTxt=o.clvPct==null?'':`<span class="bp ${o.clvPct>=0?'pos':'neg'}" title="CLV">${o.clvPct>=0?'+':''}${o.clvPct}%</span>`;
     return `<div class="feedrow"><span class="tag ${tagCls(o.agent)}">${botLabel(o.agent)}</span>
-    <span class="fxn">${o.label} · ${o.market} ${o.selection}${o.line!=null?' '+o.line:''} @${o.odds}</span>
+    <span class="fxn"><b>${humanBet(o.label, o.market, o.selection, o.line)}</b> @${o.odds} <span style="color:var(--dim)">· ${o.label}</span></span>
     ${clvTxt}<span class="bp" style="color:var(--dim)">${o.stake}u</span></div>`;
   }).join(""):`<div class="empty">No open positions yet.</div>`;
 
