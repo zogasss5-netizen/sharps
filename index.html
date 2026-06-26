@@ -88,23 +88,31 @@
 
   <div class="grid cols" style="margin-top:16px">
     <section class="card" style="border-color:#26384a">
-      <h2>Live P&amp;L — real, settled <span class="tag" style="background:rgba(63,185,80,.15);color:var(--grn)">REAL</span></h2>
-      <table><thead><tr><th>Strategy</th><th>Settled PnL</th><th>ROI</th><th>Open</th><th>Settled</th></tr></thead>
-      <tbody id="livelb"></tbody></table>
-      <p class="note">Agents place real bets at live TxLINE odds; PnL books when each match <b>finishes</b>. Fills over time — settled is empty until a match in the feed completes. This is the honest live track record (not simulated).</p>
+      <h2>Closing Line Value — live edge <span class="tag" style="background:rgba(63,185,80,.15);color:var(--grn)">REAL · LIVE</span></h2>
+      <table><thead><tr><th>Bot</th><th>Avg CLV</th><th>Beat close</th><th>Bets</th></tr></thead>
+      <tbody id="clvlb"></tbody></table>
+      <p class="note"><b>CLV</b> = entry odds vs where the line moves afterward. Positive CLV over many bets is the professional proof of edge — a Pinnacle study found +CLV bettors are almost universally profitable regardless of win/loss variance. <b>Computed live, no match result needed.</b> ≥0 avg CLV + &gt;55% beat-close = the bot is finding real value.</p>
     </section>
     <section class="card">
       <h2>Open positions <span class="mono" style="color:var(--dim)" id="opencount"></span></h2>
       <div id="openpos"></div>
-      <p class="note">Live bets the agents have placed at real odds, awaiting match settlement.</p>
+      <p class="note">Live bets at real odds, with running CLV (entry vs current line) per position.</p>
     </section>
   </div>
 
-  <section class="card" style="margin-top:14px">
-    <h2>Live match backlog <span class="mono" style="color:var(--dim)">— what happened, live</span></h2>
-    <div id="backlog"></div>
-    <p class="note">Persistent timeline of real match events the tracker records: kickoffs, goals, full-time results, bet settlements, on-chain commitments. Accumulates across restarts as the devnet feed cycles matches live.</p>
-  </section>
+  <div class="grid cols" style="margin-top:14px">
+    <section class="card">
+      <h2>Settled P&amp;L <span class="tag" style="background:rgba(63,185,80,.15);color:var(--grn)">REAL</span></h2>
+      <table><thead><tr><th>Bot</th><th>PnL</th><th>ROI</th><th>Settled</th><th>Hit</th></tr></thead>
+      <tbody id="livelb"></tbody></table>
+      <p class="note">Real PnL, booked when a match <b>finishes</b>. Fills as the feed completes matches — empty until then. CLV (above) is the leading indicator; settled PnL is the lagging confirmation.</p>
+    </section>
+    <section class="card">
+      <h2>Live match backlog <span class="mono" style="color:var(--dim)">— what happened, live</span></h2>
+      <div id="backlog"></div>
+      <p class="note">Persistent timeline of real match events: kickoffs, goals, full-time results, settlements, on-chain commitments. Accumulates across restarts as the feed cycles matches live.</p>
+    </section>
+  </div>
 
   <div class="grid cols" style="margin-top:14px">
     <section class="card">
@@ -196,12 +204,13 @@ async function load(){
   document.getElementById("livedot").innerHTML = lv ? '<span class="pulse" style="display:inline-block"></span>' : "";
 
   // signal feed
-  const tagCls = a => a==="cross-market"?"cross":a==="model-edge"?"model":"steam";
+  const tagCls = a => a==="cross-arb"?"cross":a==="inplay-value"?"model":a==="steam"?"steam":"model";
+  const botLabel = a => a==="cross-arb"?"cross":a==="inplay-value"?"inplay":a;
   const feed=document.getElementById("feed");
   const items=(lv&&lv.feed)||[];
   feed.innerHTML = items.length ? items.map(x=>{
     const link = x.onchain?` <a class="txlink" target="_blank" href="https://explorer.solana.com/tx/${x.onchain}?cluster=devnet">↗ tx</a>`:"";
-    return `<div class="feedrow"><span class="tag ${tagCls(x.agent)}">${x.agent.replace('-market','').replace('model-edge','model')}</span>
+    return `<div class="feedrow"><span class="tag ${tagCls(x.agent)}">${botLabel(x.agent)}</span>
       <span class="fxn">${x.fixture} · ${x.market} ${x.side}</span>
       <span class="bp ${x.edgeBp>=0?'pos':'neg'}">${x.edgeBp>0?'+':''}${x.edgeBp}bp</span>${link}</div>`;
   }).join("") : `<div class="empty">No live session running. Run <span class="mono">npm run live</span>.</div>`;
@@ -215,22 +224,35 @@ async function load(){
       <a class="txlink" target="_blank" href="https://explorer.solana.com/tx/${x.tx}?cluster=devnet">↗ ${x.tx.slice(0,8)}…</a></div>`
   ).join("") : `<div class="empty">No live on-chain intents yet.</div>`;
 
-  // live ledger (real, settled)
   const led=s.ledger;
+  // CLV board (live sharpness)
+  const clvb=document.getElementById("clvlb"); const clv=(led&&led.clv)||[];
+  clvb.innerHTML=clv.length?clv.map((r,i)=>`<tr>
+    <td><span class="rank ${i===0&&r.avgClv>0?'r1':''}">${i+1}</span><span class="name">${botLabel(r.agent)}</span></td>
+    <td class="mono ${r.avgClv>=0?'pos':'neg'}">${r.avgClv>=0?'+':''}${r.avgClv}%</td>
+    <td class="mono ${r.beatRate>=55?'pos':r.beatRate<45?'neg':''}">${r.beatRate}%</td>
+    <td class="mono">${r.n}</td></tr>`).join("")
+    :`<tr><td colspan="4" class="empty">CLV builds over a few ticks (entry vs moving line). Run <span class="mono">npm run track</span>.</td></tr>`;
+
+  // settled P&L
   const llb=document.getElementById("livelb");
   if(led&&led.leaderboard&&led.leaderboard.length){
     llb.innerHTML=led.leaderboard.map((r,i)=>`<tr>
-      <td><span class="rank ${i===0&&r.pnl>0?'r1':''}">${i+1}</span><span class="name">${r.agent}</span></td>
+      <td><span class="rank ${i===0&&r.pnl>0?'r1':''}">${i+1}</span><span class="name">${botLabel(r.agent)}</span></td>
       <td class="mono ${r.pnl>=0?'pos':'neg'}">${r.settled?money(r.pnl):'—'}</td>
       <td class="mono ${r.roi>=0?'pos':'neg'}">${r.settled?r.roi+'%':'—'}</td>
-      <td class="mono">${r.open}</td><td class="mono">${r.settled}</td></tr>`).join("");
-  } else llb.innerHTML=`<tr><td colspan="5" class="empty">No live bets yet — run <span class="mono">npm run live</span>.</td></tr>`;
+      <td class="mono">${r.settled}</td><td class="mono">${r.settled?r.hitRate+'%':'—'}</td></tr>`).join("");
+  } else llb.innerHTML=`<tr><td colspan="5" class="empty">No settled bets yet — fills when a match finishes.</td></tr>`;
+
+  // open positions (with live CLV)
   document.getElementById("opencount").textContent=led?`· ${led.openCount||0} open`:"";
   const op=document.getElementById("openpos"); const opens=(led&&led.open)||[];
-  op.innerHTML=opens.length?opens.map(o=>`<div class="feedrow">
-    <span class="tag ${tagCls(o.agent)}">${o.agent.replace('-market','').replace('model-edge','model')}</span>
+  op.innerHTML=opens.length?opens.map(o=>{
+    const clvTxt=o.clvPct==null?'':`<span class="bp ${o.clvPct>=0?'pos':'neg'}" title="CLV">${o.clvPct>=0?'+':''}${o.clvPct}%</span>`;
+    return `<div class="feedrow"><span class="tag ${tagCls(o.agent)}">${botLabel(o.agent)}</span>
     <span class="fxn">${o.label} · ${o.market} ${o.selection}${o.line!=null?' '+o.line:''} @${o.odds}</span>
-    <span class="bp">${o.stake}u</span></div>`).join(""):`<div class="empty">No open positions yet.</div>`;
+    ${clvTxt}<span class="bp" style="color:var(--dim)">${o.stake}u</span></div>`;
+  }).join(""):`<div class="empty">No open positions yet.</div>`;
 
   // live match backlog timeline
   const bl=document.getElementById("backlog"); const ev=s.backlog||[];
