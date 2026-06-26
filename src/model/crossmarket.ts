@@ -11,7 +11,7 @@ import { poissonPmf, type Outcome } from "./poisson.js";
 const MAXG = 12;
 
 /** Joint scoreline distribution for (lambdaHome, lambdaAway). */
-function scoreGrid(lh: number, la: number): number[][] {
+export function scoreGrid(lh: number, la: number): number[][] {
   const ph: number[] = [], pa: number[] = [];
   for (let k = 0; k <= MAXG; k++) { ph[k] = poissonPmf(k, lh); pa[k] = poissonPmf(k, la); }
   const g: number[][] = [];

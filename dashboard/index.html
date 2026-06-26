@@ -115,13 +115,13 @@
             </div>
           </div>
 
-          <!-- LIVE ODDS CHART — one chart, all three outcome lines -->
+          <!-- WIN-CHANCE CHART — our bets' probability of cashing, over time -->
           <div style="position:relative;margin:10px auto 4px;padding:14px 14px 8px;border-radius:16px;background:linear-gradient(180deg,rgba(10,14,26,.55),rgba(8,11,22,.6));border:1px solid rgba(255,255,255,.06)">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px">
-              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:#7a85a0">WIN PROBABILITY · live market price moving</span>
-              <div style="display:flex;gap:15px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:11px">
-                <sc-for list="{{ chart.series }}" as="s" hint-placeholder-count="3">
-                  <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:3px;border-radius:2px;background:{{ s.color }};box-shadow:0 0 6px {{ s.color }}"></span><span style="color:#e9edf8;font-weight:700">{{ s.label }} {{ s.cur }}</span><span style="color:#6b7a92">· edge <span style="color:{{ s.edgeColor }}">{{ s.edge }}</span></span></span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:#7a85a0">OUR BETS' WIN CHANCE · <span style="color:#cdd9e8">our model —</span> vs <span style="color:#cdd9e8">market ‑‑</span></span>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:11px">
+                <sc-for list="{{ chart.series }}" as="s" hint-placeholder-count="2">
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:3px;border-radius:2px;background:{{ s.color }};box-shadow:0 0 6px {{ s.color }}"></span><span style="color:#e9edf8;font-weight:700">{{ s.label }}</span><span style="color:#8a93a8">model {{ s.cur }} · mkt {{ s.mkt }} · edge <span style="color:{{ s.edgeColor }}">{{ s.edge }}</span></span></span>
                 </sc-for>
               </div>
             </div>
@@ -131,11 +131,8 @@
                   <line x1="8" y1="{{ g.y }}" x2="{{ chart.xEnd }}" y2="{{ g.y }}" style="stroke:rgba(255,255,255,.06)"/>
                   <text x="{{ chart.xEnd }}" y="{{ g.y }}" dx="6" dy="3.5" style="fill:#5d6f88;font-family:'JetBrains Mono',monospace;font-size:12px">{{ g.label }}</text>
                 </sc-for>
-                <sc-for list="{{ chart.entries }}" as="e" hint-placeholder-count="0">
-                  <line x1="8" y1="{{ e.y }}" x2="{{ chart.xEnd }}" y2="{{ e.y }}" style="stroke:{{ e.color }};stroke-width:1.2;stroke-dasharray:2 7;opacity:.55"/>
-                </sc-for>
-                <sc-for list="{{ chart.series }}" as="s" hint-placeholder-count="3">
-                  <path d="{{ s.area }}" style="fill:{{ s.color }};opacity:.09"/>
+                <sc-for list="{{ chart.series }}" as="s" hint-placeholder-count="2">
+                  <path d="{{ s.mkLine }}" style="fill:none;stroke:{{ s.color }};stroke-width:1.6;stroke-dasharray:5 6;opacity:.55"/>
                   <path d="{{ s.line }}" style="fill:none;stroke:{{ s.color }};stroke-width:3;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 6px {{ s.color }})"/>
                   <circle cx="{{ s.endX }}" cy="{{ s.endY }}" r="5" style="fill:{{ s.color }};filter:drop-shadow(0 0 8px {{ s.color }})"/>
                   <text x="{{ s.endX }}" y="{{ s.endY }}" dx="11" dy="4.5" style="fill:{{ s.color }};font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700">{{ s.cur }}</text>
@@ -143,7 +140,7 @@
               </svg>
             </sc-if>
             <sc-if value="{{ noChart }}" hint-placeholder-val="{{ false }}">
-              <div style="height:200px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6b7a92">building price history… (a few ticks of live odds)</div>
+              <div style="height:200px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6b7a92;line-height:1.5">no open bets on this match yet —<br>win-chance lines appear once a bot bets here.</div>
             </sc-if>
           </div>
 
@@ -466,7 +463,7 @@
     </section>
 
     <footer style="margin-top:30px;padding:0 4px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:10px;color:#5e677d">
-      <span>Score · clock · goals · odds from TxLINE — REAL. Player positions on pitch are illustrative; TxLINE does not provide player tracking. Bet objectives are real.</span>
+      <span>Score · clock · goals · odds from TxLINE — REAL. Win-chance = our model's probability each bet cashes, vs the market-implied price. Devnet paper trading.</span>
       <span>auto-refresh 8s</span>
     </footer>
 
@@ -647,7 +644,9 @@ class Component extends DCLogic {
     }
 
     const fixtures = d.fixtures||[];
-    const focusId = this.state.focus || (fixtures[0] && fixtures[0].fixtureId);
+    const _allOpen = (d.ledger&&d.ledger.allOpen)||[];
+    const _withBets = fixtures.find(f=> _allOpen.some(b=>b.fixtureId===f.fixtureId && (b.winHist||[]).length>=2));
+    const focusId = this.state.focus || (_withBets && _withBets.fixtureId) || (fixtures[0] && fixtures[0].fixtureId);
     const fx = fixtures.find(f=>f.fixtureId===focusId) || fixtures[0];
 
     // tabs
@@ -774,27 +773,33 @@ class Component extends DCLogic {
       return { name, h:hh, a:aa, hPct:Math.round(hh/tot*100)+'%', aPct:Math.round(aa/tot*100)+'%' };
     });
 
-    // ===== LIVE ODDS CHART — one chart, all three outcomes, full 0–100% axis =====
-    const hist = (fx.history||[]).filter(p=>p.mk);
+    // ===== WIN-PROBABILITY CHART — our bets' chance of cashing, over time =====
+    // one line per open bet on the focused match: model win prob (solid) vs market-implied (dashed)
+    const _seenOutcome = {};
+    const chartBets = ((d.ledger&&d.ledger.allOpen)||[]).filter(b=>b.fixtureId===focusId && (b.winHist||[]).length>=2)
+      .filter(b=>{ const k=b.market+'|'+b.selection+'|'+(b.line!=null?b.line:''); if(_seenOutcome[k]) return false; _seenOutcome[k]=1; return true; });
     let chart = null;
-    if(hist.length>=2){
-      const W=1000,H=330,padL=8,padR=64,padT=14,padB=14,n=hist.length;
-      const xs=i=>padL+(i/(n-1))*(W-padL-padR);
-      const ys=v=>padT+(1-v)*(H-padT-padB);              // 0% bottom, 100% top, full scale
-      const OUT=[{k:0,color:fx.home.color,label:fx.home.abbr},{k:1,color:'#ffb84d',label:'Draw'},{k:2,color:fx.away.color,label:fx.away.abbr}];
-      const series=OUT.map(s=>{
-        const pts=hist.map((p,i)=>[xs(i),ys(p.mk[s.k])]);
+    if(chartBets.length){
+      const W=1000,H=330,padL=8,padR=66,padT=14,padB=14;
+      const PAL=['#4d9bff','#34e6a8','#ffb84d','#a586ff','#ff5d73','#5fd1c0','#f5c542','#ff9f43'];
+      let lo=1, hi=0; chartBets.forEach(b=>b.winHist.forEach(p=>{ lo=Math.min(lo,p.m); hi=Math.max(hi,p.m); if(p.k!=null){ lo=Math.min(lo,p.k); hi=Math.max(hi,p.k); } }));
+      lo=Math.max(0,lo-0.04); hi=Math.min(1,hi+0.04); const rng=(hi-lo)||1;
+      const ys=v=>padT+(1-(Math.max(lo,Math.min(hi,v))-lo)/rng)*(H-padT-padB);
+      const series=chartBets.map((b,idx)=>{
+        const h=b.winHist, n=h.length, xs=i=>padL+(i/(n-1))*(W-padL-padR), color=PAL[idx%PAL.length];
+        const pts=h.map((p,i)=>[xs(i),ys(p.m)]);
         const line='M'+pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L');
-        const last=hist[n-1].mk[s.k], lastMdl=hist[n-1].md[s.k], e=Math.round((lastMdl-last)*1000)/10;
-        return { color:s.color, label:s.label, line,
-          area:line+' L '+pts[n-1][0].toFixed(1)+' '+ys(0).toFixed(1)+' L '+pts[0][0].toFixed(1)+' '+ys(0).toFixed(1)+' Z',
-          endX:pts[n-1][0].toFixed(1), endY:pts[n-1][1].toFixed(1), cur:Math.round(last*100)+'%',
-          mdl:Math.round(lastMdl*100)+'%', edge:(e>=0?'+':'')+e+'%', edgeColor:Math.abs(e)<3?'#8a93a8':e>=0?'#34e6a8':'#ff5d73' };
+        const kp=h.map((p,i)=>p.k!=null?[xs(i),ys(p.k)]:null).filter(Boolean);
+        const wm=Math.round((b.winModel!=null?b.winModel:h[n-1].m)*100);
+        const wk=b.winMarket!=null?Math.round(b.winMarket*100):(h[n-1].k!=null?Math.round(h[n-1].k*100):null);
+        const e=wk!=null?wm-wk:null;
+        return { color, label:this.betEnglish(b,fx), agent:b.agent, line,
+          mkLine: kp.length>=2?('M'+kp.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L')):'',
+          endX:pts[n-1][0].toFixed(1), endY:pts[n-1][1].toFixed(1), cur:wm+'%',
+          mkt:wk!=null?wk+'%':'—', edge:e!=null?((e>=0?'+':'')+e+'%'):'—', edgeColor:e==null?'#8a93a8':e>=0?'#34e6a8':'#ff5d73' };
       });
-      const grid=[0,0.25,0.5,0.75,1].map(v=>({ y:ys(v).toFixed(1), label:Math.round(v*100)+'%' }));
-      const entries=openBets.filter(o=>o.label===fx.label && o.market==='1X2').map(o=>{ const k=o.selection==='home'?0:o.selection==='away'?2:1; const p=1/o.odds;
-        return { y:ys(p).toFixed(1), color:k===0?fx.home.color:k===2?fx.away.color:'#ffb84d', label:'bet @'+o.odds.toFixed(2) }; });
-      chart={ W, H, xEnd:(W-padR), series, grid, entries };
+      const grid=[hi,(lo+hi)/2,lo].map(v=>({ y:ys(v).toFixed(1), label:Math.round(v*100)+'%' }));
+      chart={ W, H, xEnd:(W-padR), series, grid };
     }
 
     // ===== OUR TRADES vs THE LINE (did the price move our way?) =====

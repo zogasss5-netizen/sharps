@@ -103,7 +103,7 @@ export class Ledger {
   /** All open bets keyed for the match view (full set, not sliced). */
   openByFixture() {
     return this.data.open.map((o) => ({
-      agent: o.agent, fixtureId: o.fixtureId, label: o.label, market: o.market, selection: o.selection,
+      id: o.id, agent: o.agent, fixtureId: o.fixtureId, label: o.label, market: o.market, selection: o.selection,
       line: o.line ?? null, odds: +o.oddsDecimal.toFixed(2), currentOdds: o.currentOdds != null ? +o.currentOdds.toFixed(2) : null,
       stake: Math.round(o.stake), clvPct: o.clvPct ?? null, placedTs: o.placedTs,
     }));

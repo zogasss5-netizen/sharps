@@ -11,6 +11,18 @@ import { postIntent, ensureUsdtAta } from "../src/chain/venue.js";
 import { Ledger } from "../src/agents/ledger.js";
 import { normalizeScores } from "../src/model/normalize.js";
 import { adaptToTerminal } from "../src/agents/terminalState.js";
+import { scoreGrid, gridX2, gridAhCover, gridOver } from "../src/model/crossmarket.js";
+
+// Model win probability of a specific bet (the chance the bet itself cashes), from the live goal rates.
+function betWinProb(market: string, selection: string, line: number | null | undefined, lh: number, la: number): number | null {
+  const g = scoreGrid(lh, la);
+  if (market === "1X2") { const x = gridX2(g); return selection === "home" ? x.home : selection === "away" ? x.away : x.draw; }
+  if (market === "OU") { const o = gridOver(g, line ?? 2.5); return selection === "over" ? o : 1 - o; }
+  if (market === "AH") { const c = gridAhCover(g, line ?? 0); return selection === "home" ? c : 1 - c; }
+  return null;
+}
+// per-bet win-probability history: bet id -> [{t, model prob, market-implied prob}]
+const betProbHist: Record<string, { t: number; m: number; k: number | null }[]> = {};
 
 // Durable, restart-safe tracker. Runs forever (until stopped). Polls the live TxLINE feed,
 // records every match lifecycle event (kickoff / goal / full-time) + every bet + settlement
@@ -159,11 +171,27 @@ async function main() {
       }
     }
 
+    // per-bet win probability (model vs market-implied), tracked over time
+    const lamOf = new Map(lt.fixtures.map((f) => [f.fixtureId, f.jointLambda]));
+    const rawOpen = ledger.openByFixture();
+    for (const b of rawOpen) {
+      const lam = lamOf.get(b.fixtureId); if (!lam) continue;
+      const m = betWinProb(b.market, b.selection, b.line, lam[0], lam[1]); if (m == null) continue;
+      const k = b.currentOdds ? 1 / b.currentOdds : (b.odds ? 1 / b.odds : null);
+      const arr = (betProbHist[b.id] ||= []);
+      arr.push({ t: now, m: +m.toFixed(4), k: k != null ? +k.toFixed(4) : null });
+      if (arr.length > 40) arr.splice(0, arr.length - 40);
+    }
+    const allOpenEnriched = rawOpen.map((b) => {
+      const lam = lamOf.get(b.fixtureId); const m = lam ? betWinProb(b.market, b.selection, b.line, lam[0], lam[1]) : null;
+      return { ...b, winModel: m != null ? +m.toFixed(4) : null, winMarket: b.currentOdds ? +(1 / b.currentOdds).toFixed(4) : (b.odds ? +(1 / b.odds).toFixed(4) : null), winHist: betProbHist[b.id] || [] };
+    });
+
     const state = {
       generatedAtMs: now, track: "TxODDS World Cup — Trading Tools & Agents", ...engine,
       fixtures: liveBoard(lt.fixtures),
       live: { tick, mode: "tracker", signals: lt.signals.length, feed: feed.slice(0, 24) },
-      ledger: { startBankroll: 1000, leaderboard: ledger.leaderboard(), clv: ledger.clvBoard(), open: ledger.openPositions().slice(0, 12), allOpen: ledger.openByFixture(), settled: ledger.recentSettled(10), openCount: ledger.openPositions().length },
+      ledger: { startBankroll: 1000, leaderboard: ledger.leaderboard(), clv: ledger.clvBoard(), open: ledger.openPositions().slice(0, 12), allOpen: allOpenEnriched, settled: ledger.recentSettled(10), openCount: ledger.openPositions().length },
       backlog: recentEvents(30),
       onchain: { network: "devnet", program: "6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J", intentTx: "2p6ub1ShSiojbqCvWcc6D2vYMDxi8NJXRSwyiSpyZsnDumLyhRuDWsJf62WkhTf1iuzaF9gq59Xj1sDUvXQ8gB46", validateTx: "neoJHaFxcmzgoicHrrvEDrfFyPFcQDoR2K9Y7Gmw7czHpkpsATN3oeToGag9BX6L5mrhCCCPy1M1oMLxvBj4R3U", liveIntents: onchainIntents.slice(0, 8) },
     };

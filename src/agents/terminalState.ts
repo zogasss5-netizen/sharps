@@ -53,7 +53,8 @@ export function adaptToTerminal(s: any) {
   const mapBet = (b: any) => { const { h, a } = split(b.label); return {
     agent: b.agent, fixtureId: b.fixtureId != null ? String(b.fixtureId) : undefined,
     label: `${h.abbr} v ${a.abbr}`, market: MKT[b.market] || b.market, selection: sel(b, h.abbr, a.abbr),
-    line: b.line ?? 0, odds: b.odds, currentOdds: b.currentOdds ?? null, stake: b.stake, clvPct: b.clvPct ?? 0, placedTs: b.placedTs }; };
+    line: b.line ?? 0, odds: b.odds, currentOdds: b.currentOdds ?? null, stake: b.stake, clvPct: b.clvPct ?? 0, placedTs: b.placedTs,
+    winModel: b.winModel ?? null, winMarket: b.winMarket ?? null, winHist: b.winHist || [] }; };
 
   const L = s.ledger || {};
   return {
