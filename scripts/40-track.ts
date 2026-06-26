@@ -30,6 +30,7 @@ type Phase = "pre" | "live" | "done";
 interface MState { phase: Phase; score: [number, number]; minute: number; gameState: string }
 
 const sh = (a: string[]) => new Promise<void>((res) => execFile("git", a, { cwd: process.cwd() }, () => res()));
+const shOut = (a: string[]) => new Promise<string>((res) => execFile("git", a, { cwd: process.cwd() }, (_e, out) => res((out || "").trim().split("\n").pop() || "")));
 async function get(p: string) { const r = await fetch(`${dataBase()}${p}`, { headers: dataHeaders() }); return r.ok ? r.json() : []; }
 function loadJson<T>(f: string, d: T): T { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } }
 function appendEvent(e: any) { fs.mkdirSync(path.dirname(EVENTS), { recursive: true }); fs.appendFileSync(EVENTS, JSON.stringify(e) + "\n"); }
@@ -58,7 +59,9 @@ function liveBoard(fixtures: LiveFixture[]) {
 async function deploy(msg: string) {
   await sh(["add", "-f", "dashboard/state.json"]);
   await sh(["-c", "user.name=zogasss5-netizen", "-c", "user.email=258506098+zogasss5-netizen@users.noreply.github.com", "commit", "-q", "-m", msg]);
-  await sh(["subtree", "push", "--prefix", "dashboard", "origin", "gh-pages"]);
+  // robust force-deploy: split the dashboard subtree to root, force-push to gh-pages (never fails on divergence)
+  const split = await shOut(["subtree", "split", "--prefix", "dashboard", "HEAD"]);
+  if (split) await sh(["push", "-f", "origin", `${split}:refs/heads/gh-pages`]);
   await sh(["reset", "--soft", "HEAD~1"]);
   await sh(["restore", "--staged", "dashboard/state.json"]);
 }
