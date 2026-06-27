@@ -14,6 +14,7 @@
     "model:selftest": "tsx src/model/poisson.ts",
     "typecheck": "tsc --noEmit",
     "sim": "tsx scripts/20-sim.ts",
+    "backtest": "tsx scripts/21-backtest.ts",
     "deploy:dash": "git subtree push --prefix dashboard origin gh-pages",
     "live": "tsx scripts/30-live.ts",
     "cross": "tsx scripts/31-cross.ts",

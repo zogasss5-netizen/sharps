@@ -5,6 +5,7 @@ import { dataBase, dataHeaders } from "../src/ingest/auth.js";
 import { normalizeFixture, normalizeOdds, normalizeScores, WORLD_CUP_COMPETITION_ID } from "../src/model/normalize.js";
 import { inPlayProbs, lambdasFrom1x2 } from "../src/model/poisson.js";
 import { runEngine, type MatchSpec } from "../src/agents/engine.js";
+import { representativeCard } from "../src/agents/card.js";
 import { SIDES } from "../src/agents/types.js";
 
 // Verified on-chain proofs from our devnet runs (see data/CHAIN.md).
@@ -14,6 +15,8 @@ const ONCHAIN = {
   intentTx: "2p6ub1ShSiojbqCvWcc6D2vYMDxi8NJXRSwyiSpyZsnDumLyhRuDWsJf62WkhTf1iuzaF9gq59Xj1sDUvXQ8gB46",
   validateTx: "neoJHaFxcmzgoicHrrvEDrfFyPFcQDoR2K9Y7Gmw7czHpkpsATN3oeToGag9BX6L5mrhCCCPy1M1oMLxvBj4R3U",
 };
+
+const SEASONS = 150;   // leaderboard = mean over this many independent seasons
 
 async function get(p: string) {
   const r = await fetch(`${dataBase()}${p}`, { headers: dataHeaders() });
@@ -52,8 +55,35 @@ async function main() {
     });
   }
 
-  console.log(`fixtures with odds: ${specs.length}. Running engine...`);
-  const engine = runEngine(specs, 25, 1000);
+  // The leaderboard needs a statistically meaningful card. Devnet often exposes only a
+  // handful of live fixtures with odds, so back the live ones with a representative card.
+  const liveCount = specs.length;
+  if (specs.length < 24) specs.push(...representativeCard());
+  console.log(`live fixtures with odds: ${liveCount}; leaderboard card: ${specs.length}. Running ${SEASONS} seasons...`);
+
+  // Average across many independent one-pass seasons -> a STABLE, representative leaderboard
+  // (one season is noisy; e.g. the baseline can get lucky). Matches the backtest distribution.
+  const runs = Array.from({ length: SEASONS }, (_, k) => runEngine(specs, 1, 1000, 1 + k * 100019).leaderboard);
+  const names = runs[0]!.map((r) => r.name);
+  const r1 = (x: number) => Math.round(x * 10) / 10;
+  const leaderboard = names.map((name) => {
+    const rs = runs.map((run) => run.find((r) => r.name === name)!);
+    const avg = (f: (r: typeof rs[number]) => number) => rs.reduce((s, r) => s + f(r), 0) / rs.length;
+    const meanBank = avg((r) => r.bankroll);
+    const rep = rs.reduce((x, y) => (Math.abs(y.bankroll - meanBank) < Math.abs(x.bankroll - meanBank) ? y : x));
+    return {
+      name, blurb: rep.blurb,
+      bankroll: Math.round(meanBank),
+      pnl: Math.round(avg((r) => r.pnl)),
+      roi: r1(avg((r) => r.roi)),
+      bets: Math.round(avg((r) => r.bets)),
+      wins: Math.round(avg((r) => r.wins)),
+      hitRate: r1(avg((r) => r.hitRate)),
+      staked: Math.round(avg((r) => r.staked)),
+      equity: rep.equity, // a representative (near-mean) season's curve
+    };
+  }).sort((a, b) => b.pnl - a.pnl);
+  const engine = { startBankroll: 1000, matches: specs.length, seasons: SEASONS, leaderboard };
 
   const state = {
     generatedAtMs: Date.now(),

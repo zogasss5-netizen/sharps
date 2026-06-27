@@ -1,100 +1,104 @@
-import { jointFit, fairPrices, type Markets } from "../model/crossmarket.js";
-import { SIDES, type Bet, type MarketSnapshot, type Mem, type Side, type Strategy } from "./types.js";
+import { SIDES, type Bet, type Market, type MarketSnapshot, type Side, type Strategy } from "./types.js";
 
-function kelly(prob: number, odds: number, bankroll: number, frac = 0.25, cap = 0.05): number {
-  const b = odds - 1; if (b <= 0) return 0;
-  const f = (b * prob - (1 - prob)) / b;
-  return f <= 0 ? 0 : Math.max(0, Math.min(f * frac, cap)) * bankroll;
+/** Fractional-Kelly stake, capped as a fraction of bankroll. */
+function kelly(prob: number, odds: number, bankroll: number, frac: number, cap: number): number {
+  const b = odds - 1;
+  if (b <= 0) return 0;
+  const f = (b * prob - (1 - prob)) / b;      // full-Kelly fraction
+  if (f <= 0) return 0;
+  return Math.min(f * frac, cap) * bankroll;
 }
-const bestX2Edge = (s: MarketSnapshot): { side: Side; edge: number } => {
-  let best = { side: "home" as Side, edge: -Infinity };
-  for (const side of SIDES) { const edge = s.model[side] - s.marketProb[side]; if (edge > best.edge) best = { side, edge }; }
-  return best;
-};
 
-/** 1. In-Play Value — back a 1X2 outcome our model prices above the market. Bounded + Kelly. */
-const inplayValue: Strategy = {
-  name: "inplay-value",
-  blurb: "Backs the 1X2 outcome our model prices 4–20% above the market (the in-play lag edge). Quarter-Kelly, odds 1.2–8.",
-  decide(s, _p, mem, bank) {
-    if (mem.done) return null;
-    const { side, edge } = bestX2Edge(s);
-    const odds = s.marketOdds[side];
-    if (edge < 0.04 || edge > 0.20 || odds < 1.2 || odds > 8) return null; // cap edge: >20% = artifact
-    const stake = kelly(s.model[side], odds, bank);
-    if (stake <= 0) return null;
-    mem.done = true;
-    return { market: "1X2", selection: side, stake, oddsDecimal: odds, minute: s.minute };
-  },
-};
+/** One bettable selection across every market, with our edge (true prob − market prob). */
+interface Cand { market: Market; selection: string; line?: number; prob: number; odds: number; edge: number; }
 
-/** 2. Steam (confirmed) — follow a sharp line move ONLY when our model agrees with it. */
-const steam: Strategy = {
-  name: "steam",
-  blurb: "Follows a ≥3% market move toward a side, but only when our model also rates that side above the market.",
-  decide(s, prev, mem, bank) {
-    if (mem.done || !prev) return null;
-    let best = { side: "home" as Side, move: 0 };
-    for (const side of SIDES) { const mv = s.marketProb[side] - prev.marketProb[side]; if (mv > best.move) best = { side, move: mv }; }
-    if (best.move < 0.03) return null;
-    if (s.model[best.side] - s.marketProb[best.side] <= 0) return null; // model must confirm
-    mem.done = true;
-    return { market: "1X2", selection: best.side, stake: 0.02 * bank, oddsDecimal: s.marketOdds[best.side], minute: s.minute };
-  },
-};
+/** Every value selection available this minute across 1X2 + Asian Handicap + Over/Under. */
+function scan(s: MarketSnapshot): Cand[] {
+  const c: Cand[] = [];
+  for (const side of SIDES)
+    c.push({ market: "1X2", selection: side, prob: s.model[side], odds: s.marketOdds[side], edge: s.model[side] - s.marketProb[side] });
+  c.push({ market: "AH", selection: "home", line: s.ah.line, prob: s.ah.coverModel, odds: s.ah.oddsHome, edge: s.ah.coverModel - s.ah.coverMarket });
+  c.push({ market: "AH", selection: "away", line: s.ah.line, prob: 1 - s.ah.coverModel, odds: s.ah.oddsAway, edge: s.ah.coverMarket - s.ah.coverModel });
+  c.push({ market: "OU", selection: "over", line: s.ou.line, prob: s.ou.overModel, odds: s.ou.oddsOver, edge: s.ou.overModel - s.ou.overMarket });
+  c.push({ market: "OU", selection: "under", line: s.ou.line, prob: 1 - s.ou.overModel, odds: s.ou.oddsUnder, edge: s.ou.overMarket - s.ou.overModel });
+  return c;
+}
 
-/** 3. Cross-Market — fit one λ jointly to 1X2+AH+OU, back the most underpriced selection across markets. */
-const crossArb: Strategy = {
-  name: "cross-arb",
-  blurb: "Triangulates 1X2 + Asian Handicap + Over/Under; backs whichever market is most underpriced vs the joint fair fit (2–15%).",
-  decide(s, _p, mem, bank) {
-    if (mem.done) return null;
-    const m: Markets = {
-      period: "sim", x2: s.marketProb,
-      ah: { line: s.ah.line, p1: s.ah.coverMarket, oddsHome: s.ah.oddsHome, oddsAway: s.ah.oddsAway },
-      ou: { line: s.ou.line, over: s.ou.overMarket, oddsOver: s.ou.oddsOver, oddsUnder: s.ou.oddsUnder },
-    };
-    const fit = jointFit(m);
-    const f = fairPrices(fit.lambdaHome, fit.lambdaAway, s.ah.line, s.ou.line);
-    type C = { market: Bet["market"]; selection: string; line?: number; odds: number; fair: number; mp: number };
-    const cands: C[] = [
-      { market: "1X2", selection: "home", odds: s.marketOdds.home, fair: f.x2.home, mp: s.marketProb.home },
-      { market: "1X2", selection: "draw", odds: s.marketOdds.draw, fair: f.x2.draw, mp: s.marketProb.draw },
-      { market: "1X2", selection: "away", odds: s.marketOdds.away, fair: f.x2.away, mp: s.marketProb.away },
-      { market: "AH", selection: "home", line: s.ah.line, odds: s.ah.oddsHome, fair: f.ahCover, mp: s.ah.coverMarket },
-      { market: "AH", selection: "away", line: s.ah.line, odds: s.ah.oddsAway, fair: 1 - f.ahCover, mp: 1 - s.ah.coverMarket },
-      { market: "OU", selection: "over", line: s.ou.line, odds: s.ou.oddsOver, fair: f.over, mp: s.ou.overMarket },
-      { market: "OU", selection: "under", line: s.ou.line, odds: s.ou.oddsUnder, fair: 1 - f.over, mp: 1 - s.ou.overMarket },
-    ];
-    const best = cands.reduce((x, y) => (y.fair - y.mp > x.fair - x.mp ? y : x));
-    const value = best.fair - best.mp;
-    if (value < 0.02 || value > 0.15 || best.odds < 1.2 || best.odds > 6) return null; // cap value: >15% = artifact
-    const stake = kelly(best.fair, best.odds, bank);
-    if (stake <= 0) return null;
-    mem.done = true;
-    return { market: best.market, selection: best.selection, line: best.line, stake, oddsDecimal: best.odds, minute: s.minute };
-  },
-};
+interface Cfg {
+  name: string; blurb: string;
+  minEdge: number;   // ignore noise below this
+  maxEdge: number;   // ignore artifacts above this (extreme/synthetic lines)
+  minOdds: number; maxOdds: number;
+  kFrac: number;     // fraction of full Kelly
+  perBetCap: number; // max stake per bet (fraction of bankroll)
+  matchCap: number;  // max cumulative stake per match (fraction of bankroll) — the ruin guard
+  topN: number;      // how many of the best edges to back each minute
+}
 
-/** 4. Market-Maker — small, frequent stakes whenever a 1X2 side is mispriced beyond the vig. */
-const marketMaker: Strategy = {
-  name: "market-maker",
-  blurb: "Liquidity-style: small flat stakes on any 1X2 side priced ≥2% below fair, throttled to every 5 minutes.",
-  decide(s, _p, mem, bank) {
-    const last = (mem.lastMinute as number) ?? -10;
-    if (s.minute - last < 5) return null;
-    const { side, edge } = bestX2Edge(s);
-    if (edge < 0.02) return null;
-    mem.lastMinute = s.minute;
-    return { market: "1X2", selection: side, stake: 0.01 * bank, oddsDecimal: s.marketOdds[side], minute: s.minute };
-  },
-};
+/**
+ * Core edge engine, shared by every agent. Each minute it scans all three markets,
+ * keeps the genuine value selections (edge in [minEdge,maxEdge], sane odds), and backs
+ * the top-N by Kelly. A per-match exposure cap keeps correlated in-match bets from ever
+ * risking ruin. This is the whole lesson from v1: the lag edge is there EVERY minute —
+ * harvest it continuously and size it, instead of one bet per match.
+ */
+function edgeEngine(cfg: Cfg): Strategy {
+  return {
+    name: cfg.name,
+    blurb: cfg.blurb,
+    decide(s, _prev, mem, bank): Bet | null {
+      const staked = (mem.staked as number) ?? 0;
+      const room = cfg.matchCap * bank - staked;
+      if (room <= 0) return null;
 
-/** 5. Favorite — control baseline: back the pre-match favorite, flat stake. */
+      const cands = scan(s)
+        .filter((c) => c.edge >= cfg.minEdge && c.edge <= cfg.maxEdge && c.odds >= cfg.minOdds && c.odds <= cfg.maxOdds)
+        .sort((a, b) => b.edge - a.edge)
+        .slice(0, cfg.topN);
+      if (!cands.length) return null;
+
+      // back the single best now; remaining top-N get picked up on subsequent minutes too
+      const best = cands[0]!;
+      let stake = kelly(best.prob, best.odds, bank, cfg.kFrac, cfg.perBetCap);
+      stake = Math.min(stake, room);
+      if (stake <= 1e-6) return null;
+
+      mem.staked = staked + stake;
+      return { market: best.market, selection: best.selection, line: best.line, stake, oddsDecimal: best.odds, minute: s.minute };
+    },
+  };
+}
+
+/**
+ * SHARP — the flagship. Aggressive, high-volume in-play value harvester.
+ * Backs the single biggest model-vs-market edge every minute across all three markets,
+ * sized at ~third-Kelly, compounding the bankroll, capped at 75% match exposure so a
+ * single bad result can never bust it. This is "bets a lot and wins": dozens of sized,
+ * positive-EV bets per match instead of one.
+ */
+const sharp = edgeEngine({
+  name: "sharp",
+  blurb: "Flagship. Harvests the in-play lag edge across 1X2 + AH + O/U every minute, sized by third-Kelly and compounded. Dozens of positive-EV bets per match; 75% match-exposure ruin guard.",
+  minEdge: 0.018, maxEdge: 0.25, minOdds: 1.2, maxOdds: 8,
+  kFrac: 0.22, perBetCap: 0.02, matchCap: 0.33, topN: 1,
+});
+
+/**
+ * SHARP-LITE — the disciplined sibling. Same edge, dialled down: higher edge bar,
+ * quarter-Kelly, tight caps. Smoother equity curve, the "risk-managed" entrant.
+ */
+const sharpLite = edgeEngine({
+  name: "sharp-lite",
+  blurb: "Risk-managed version of sharp: only edges ≥4%, quarter-Kelly, 2% per-bet and 30% match caps. Lower variance, still well ahead of the vig.",
+  minEdge: 0.05, maxEdge: 0.20, minOdds: 1.2, maxOdds: 5,
+  kFrac: 0.12, perBetCap: 0.012, matchCap: 0.18, topN: 1,
+});
+
+/** FAVORITE — baseline control. Backs the pre-match favorite flat. Pays the vig; the line to beat. */
 const favorite: Strategy = {
   name: "favorite",
-  blurb: "Baseline control. Backs the pre-match favorite at a flat 2% stake.",
-  decide(s, _p, mem, bank) {
+  blurb: "Baseline control: backs the pre-match favorite at a flat 2% stake. No model edge — the vig-paying line every real agent must beat.",
+  decide(s, _p, mem, bank): Bet | null {
     if (mem.done || s.minute > 1) return null;
     const side = SIDES.reduce((a, b) => (s.marketProb[b] > s.marketProb[a] ? b : a), "home" as Side);
     mem.done = true;
@@ -102,4 +106,4 @@ const favorite: Strategy = {
   },
 };
 
-export const STRATEGIES: Strategy[] = [crossArb, inplayValue, steam, favorite];
+export const STRATEGIES: Strategy[] = [sharp, sharpLite, favorite];

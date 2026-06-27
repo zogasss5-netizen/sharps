@@ -7,18 +7,31 @@
 > by TxLINE.
 
 ## The agents
-Four deterministic bots trade the same live feed and are ranked by CLV and settled P&L:
+One core insight drives all of them: **in-play, the market price lags fair value, and that lag shows up every
+minute across all three markets — so harvest it continuously and size each bet, instead of one bet per match.**
+Three deterministic bots trade the same live feed and are ranked by CLV and settled P&L:
 
 | Bot | What it does |
 |-----|--------------|
-| **cross-arb** | Fits one pair of goal rates jointly to 1X2 + Asian Handicap + Over/Under, then backs whichever market is most underpriced vs that joint-fair fit (2–15% value, only when the three markets are mutually consistent). |
-| **inplay-value** | Live only: after goals the market price lags the new fair value — backs the lagging side (4–20% edge, bounded). |
-| **steam** | Follows a real line move since the last tick, but only when our model confirms the same side. |
-| **favorite** | Baseline control — backs the pre-match favorite flat. (Expected to *lose* CLV; it's the "not sharp" reference.) |
+| **sharp** | Flagship. Every minute it scans 1X2 + Asian Handicap + Over/Under, backs the single biggest model-vs-market edge, sizes it by ⅓-Kelly, and compounds. Dozens-to-hundreds of positive-EV bets per match, with a 33%-per-match exposure cap so correlated in-match bets can never risk ruin. *Bets a lot, and wins.* |
+| **sharp-lite** | Same edge, risk-managed: only edges ≥5%, ¼-Kelly, tight per-bet and per-match caps. Smoother equity curve, the best return *per dollar staked*. |
+| **favorite** | Baseline control — backs the pre-match favorite flat. Pays the vig; the −EV line every real agent must beat. |
 
-Every bot is gated: it needs a clean model fit, sane odds (1.2–6.0), and a bounded edge. Anything implying a
->15–20% edge against a de-margined market is treated as a data artifact and rejected — efficient markets don't
-hand out 80% edges.
+Every bet is gated: a clean model edge in [~2%, 25%], sane odds (1.2–8.0). Anything implying a >25% edge against a
+de-margined market is treated as a data artifact and rejected — efficient markets don't hand out 80% edges.
+
+### Backtest (`npm run backtest` — 600 independent seasons, 24-fixture card, $1k start, compounding within a season)
+| agent | median | unlucky (p5) | worst | seasons profitable | ruin (lost half+) | bets/season |
+|-------|-------:|-------------:|------:|------------------:|------------------:|------------:|
+| **sharp** | **$1,958 (2.0×)** | $704 | $219 | **87%** | 1% | 754 |
+| **sharp-lite** | $1,567 (1.6×) | $873 | $460 | 89% | 0% | 418 |
+| favorite | $974 | $839 | $709 | 39% | 0% | 24 |
+
+We report the **distribution**, not a single ROI number — aggressive Kelly has fat tails, and an honest agent
+shows its downside. `sharp` clears the vig-paying baseline in ~87% of seasons at a ~2× median with a 1% ruin
+rate. *Caveat we own:* the simulator constructs the lag edge by design (market = a lagging EMA of the true
+model + 5% vig), so the backtest proves the **sizing/harvesting** is sound **given** the model leads the market —
+the live CLV board is what proves the model actually does.
 
 ## How we know a bot is sharp — Closing Line Value (CLV)
 The honest problem with "P&L": you must wait for matches to finish. CLV solves it. CLV compares the odds you

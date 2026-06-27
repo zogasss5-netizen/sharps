@@ -35,7 +35,7 @@ function settle(bets: Bet[], score: [number, number]): { pnl: number; wins: numb
   return { pnl, wins, staked };
 }
 
-export function runEngine(specs: MatchSpec[], simsPerMatch = 20, startBankroll = 1000): EngineState {
+export function runEngine(specs: MatchSpec[], simsPerMatch = 20, startBankroll = 1000, seedBase = 0): EngineState {
   const acc = STRATEGIES.map((s) => ({
     name: s.name, blurb: s.blurb, bankroll: startBankroll, pnl: 0, roi: 0,
     bets: 0, wins: 0, hitRate: 0, staked: 0, equity: [] as number[], strat: s,
@@ -45,7 +45,7 @@ export function runEngine(specs: MatchSpec[], simsPerMatch = 20, startBankroll =
   for (let si = 0; si < simsPerMatch; si++) {
     for (let fi = 0; fi < specs.length; fi++) {
       const spec = specs[fi]!;
-      const seed = (fi + 1) * 100003 + (si + 1) * 7919;
+      const seed = seedBase + (fi + 1) * 100003 + (si + 1) * 7919;
       const sim = simulateMatch(spec.lambdaHome, spec.lambdaAway, seed);
       matchCount++;
       for (const a of acc) {
